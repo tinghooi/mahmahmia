@@ -191,6 +191,48 @@
       return el.innerHTML;
     }
 
+    // --- Sound effects (Web Audio API, no files needed) ---
+    let audioCtx = null;
+    function getAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return audioCtx;
+    }
+
+    function playTone(freq, duration, type, delay) {
+      const ctx = getAudio();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + duration);
+    }
+
+    function soundCoin() {
+      // Quick ascending "cha-ching"
+      playTone(880, 0.1, 'square', 0);
+      playTone(1175, 0.1, 'square', 0.08);
+      playTone(1397, 0.15, 'square', 0.16);
+    }
+
+    function soundSettle() {
+      // Celebration fanfare
+      playTone(523, 0.15, 'square', 0);
+      playTone(659, 0.15, 'square', 0.15);
+      playTone(784, 0.15, 'square', 0.3);
+      playTone(1047, 0.3, 'square', 0.45);
+    }
+
+    function soundDelete() {
+      // Quick descending boop
+      playTone(400, 0.1, 'sine', 0);
+      playTone(250, 0.15, 'sine', 0.08);
+    }
+
     // --- Toast ---
     const toastMsgs = [
       (l, w, p) => `${l} 又送钱给 ${w} 了`,
@@ -377,6 +419,7 @@
       pointsInput.value = '';
       pointsInput.focus();
       showToast(funToast(selectedLoser, selectedWinner, points));
+      soundCoin();
       // Keep loser/winner selected for quick consecutive entries
       renderStandings();
       flashStandings();
@@ -418,6 +461,7 @@
 
     function deleteRound(index) {
       rounds.splice(index, 1);
+      soundDelete();
       renderStandings();
       renderRoundLog();
       renderQuickAmounts();
@@ -439,6 +483,7 @@
       if (!confirm('End the game and settle up?')) return;
       renderSettlement();
       showScreen('settlement');
+      soundSettle();
     }
 
     function calculateSettlement(netScores) {
