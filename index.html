@@ -123,10 +123,31 @@
       document.getElementById(id).classList.add('active');
     }
 
-    // --- Persistence stubs (replaced in Task 7) ---
-    function saveState() {}
-    function clearState() {}
-    function restoreState() { return false; }
+    // --- Persistence ---
+    function saveState() {
+      const state = { gameType, playerCount, players, rounds };
+      sessionStorage.setItem('mahmahmia-state', JSON.stringify(state));
+    }
+
+    function clearState() {
+      sessionStorage.removeItem('mahmahmia-state');
+    }
+
+    function restoreState() {
+      const saved = sessionStorage.getItem('mahmahmia-state');
+      if (!saved) return false;
+      try {
+        const state = JSON.parse(saved);
+        gameType = state.gameType;
+        playerCount = state.playerCount;
+        players = state.players;
+        rounds = state.rounds;
+        return true;
+      } catch (e) {
+        clearState();
+        return false;
+      }
+    }
 
     // --- Scoring ---
     function renderScoring() {
@@ -359,7 +380,12 @@
     }
 
     // Initialize
-    renderNameInputs();
+    if (restoreState() && players.length > 0) {
+      renderScoring();
+      showScreen('scoring');
+    } else {
+      renderNameInputs();
+    }
   </script>
 </body>
 </html>
