@@ -54,13 +54,13 @@ A mobile web app for tracking scores during mahjong (3 players) and rummy (4 pla
 
 - **Round log** (below the form):
   - List of all rounds entered this session
-  - Format: `#1: Alton → Michelle: 30 pts`
+  - Format: `#1: Alton → Michelle: 30 pts` (arrow = loser pays winner)
   - Each entry has an **undo/delete button** (trash icon or X)
   - Deleting a round recalculates standings
 
 - **"End Game — Settle Up" button** — transitions to Settlement screen
 
-- **Auto-save:** Every state change writes to `sessionStorage`. On page load, if saved state exists for an in-progress game, restore it automatically.
+- **Auto-save:** Every state change writes to `sessionStorage` (key: `mahmahmia-state`). On page load, if saved state exists for an in-progress game, restore it automatically.
 
 ### Screen 3: Settlement
 
