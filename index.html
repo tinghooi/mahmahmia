@@ -56,6 +56,18 @@
     .player-btn.selected-loser { background: #7f1d1d; border-color: #ef4444; color: #fca5a5; }
     .player-btn.selected-winner { background: #14532d; border-color: #22c55e; color: #86efac; }
     .player-btn.disabled { opacity: 0.25; pointer-events: none; }
+    .toast {
+      position: fixed; top: -60px; left: 50%; transform: translateX(-50%);
+      background: #166534; color: #86efac; padding: 10px 20px; border-radius: 10px;
+      font-size: 14px; font-weight: 600; z-index: 100; white-space: nowrap;
+      transition: top 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+    .toast.show { top: 16px; }
+    @keyframes pulse-panel {
+      0% { border-color: #4a9eff; }
+      100% { border-color: transparent; }
+    }
+    .standings-flash { animation: pulse-panel 0.8s ease-out; border-color: #4a9eff; border-width: 2px; border-style: solid; }
     .log-header {
       display: flex; justify-content: space-between; align-items: center;
       padding: 8px 0; cursor: pointer; user-select: none;
@@ -88,6 +100,8 @@
 <body>
   <h1>🀄 MahMahMia</h1>
   <p class="subtitle">Score Tracker</p>
+
+  <div class="toast" id="toast"></div>
 
   <section id="setup" class="active">
     <div class="label">Game Type</div>
@@ -162,6 +176,24 @@
       const el = document.createElement('span');
       el.textContent = str;
       return el.innerHTML;
+    }
+
+    // --- Toast ---
+    let toastTimer = null;
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 1500);
+    }
+
+    function flashStandings() {
+      const panel = document.getElementById('standings');
+      panel.classList.remove('standings-flash');
+      void panel.offsetWidth; // force reflow
+      panel.classList.add('standings-flash');
+      setTimeout(() => panel.classList.remove('standings-flash'), 800);
     }
 
     // --- Persistence ---
@@ -271,8 +303,10 @@
       rounds.push({ loser: selectedLoser, winner: selectedWinner, points });
       pointsInput.value = '';
       pointsInput.focus();
+      showToast(`${selectedLoser} → ${selectedWinner}: ${points} pts`);
       // Keep loser/winner selected for quick consecutive entries
       renderStandings();
+      flashStandings();
       renderRoundLog();
       const entries = document.querySelectorAll('.round-entry');
       if (entries.length > 0) {
