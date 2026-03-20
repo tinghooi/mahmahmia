@@ -119,6 +119,7 @@
 
     // --- Scoring ---
     function renderScoring() {
+      document.getElementById('scoring-error').textContent = '';
       renderStandings();
       renderDropdowns();
       renderRoundLog();
@@ -172,7 +173,7 @@
       const winner = document.getElementById('winner').value;
       const pointsInput = document.getElementById('points');
       const points = parseInt(pointsInput.value, 10);
-      if (!points || points <= 0) {
+      if (!points || points <= 0 || points !== Number(pointsInput.value)) {
         document.getElementById('scoring-error').textContent = 'Enter a valid point amount.';
         return;
       }
