@@ -509,7 +509,7 @@
     function calculateSettlement(netScores) {
       // Invariant: net scores must sum to zero
       const sum = Object.values(netScores).reduce((a, b) => a + b, 0);
-      if (sum !== 0) throw new Error(`Net scores do not sum to zero (sum=${sum})`);
+      if (Math.abs(sum) > 0.01) throw new Error(`Net scores do not sum to zero (sum=${sum})`);
       const debtors = [];
       const creditors = [];
       for (const [name, amount] of Object.entries(netScores)) {
