@@ -104,12 +104,9 @@
     .btn-toggle:active { transform: scale(0.97); opacity: 0.85; }
     .btn-ghost:active { opacity: 0.5; }
     .delete-btn:active { opacity: 0.5; }
-    .player-title {
-      font-size: 10px; margin-left: 6px; padding: 2px 6px; border-radius: 4px;
-      background: #f0ebe3; color: #8a7560; display: inline-block; vertical-align: middle;
-    }
-    .score-pos .player-title { background: #e8f5e9; color: #2d7d46; }
-    .score-neg .player-title { background: #fde8e8; color: #c44b3f; }
+    .player-title { font-size: 12px; margin-top: 2px; opacity: 0.65; }
+    .standings-row { border-bottom: 1px solid #f0ebe3; }
+    .standings-row:last-child { border-bottom: none; }
     .standings-panel { border-top: 3px solid #c4873b; }
     @keyframes flash-in {
       from { background: rgba(196, 135, 59, 0.15); }
@@ -321,11 +318,11 @@
     }
 
     function getTitle(score, isTop, isBottom) {
-      if (score === 0) return '打酱油';
-      if (isTop && score > 0) return '大老板';
-      if (isBottom && score < 0) return '破产王';
-      if (score > 0) return '小赚';
-      return '惨了';
+      if (score === 0) return { text: '打酱油', emoji: '😐' };
+      if (isTop && score > 0) return { text: '大老板', emoji: '👑' };
+      if (isBottom && score < 0) return { text: '破产王', emoji: '💸' };
+      if (score > 0) return { text: '小赚', emoji: '😏' };
+      return { text: '惨了', emoji: '😭' };
     }
 
     function renderScorePanel(elementId, showTitles) {
@@ -336,10 +333,18 @@
         const s = scores[p];
         const cls = s > 0 ? 'score-pos' : s < 0 ? 'score-neg' : 'score-zero';
         const prefix = s > 0 ? '+' : '';
-        const title = showTitles && rounds.length > 0
-          ? `<span class="player-title">${getTitle(s, p === top, p === bottom)}</span>` : '';
+        if (showTitles && rounds.length > 0) {
+          const t = getTitle(s, p === top, p === bottom);
+          return `<div style="padding:8px 0;" class="${cls} standings-row">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-weight:600;font-size:16px;">${esc(p)}</span>
+              <span style="font-weight:700;font-size:18px;">${prefix}${s}</span>
+            </div>
+            <div class="player-title">${t.emoji} ${t.text}</div>
+          </div>`;
+        }
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;" class="${cls}">
-      <span>${esc(p)}${title}</span><span style="font-weight:700;">${prefix}${s}</span>
+      <span>${esc(p)}</span><span style="font-weight:700;">${prefix}${s}</span>
     </div>`;
       }).join('');
     }
