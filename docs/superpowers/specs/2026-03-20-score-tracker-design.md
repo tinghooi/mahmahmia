@@ -9,7 +9,7 @@ A mobile web app for tracking scores during mahjong (3 players) and rummy (4 pla
 - **Platform:** Mobile web app (opened in phone browser, no install)
 - **Users:** Single scorer on one device, no multi-device sync
 - **Games supported:** Mahjong (3 players), Rummy (4 players)
-- **Scoring model:** Free-form "X gives Y N points" per round
+- **Scoring model:** Free-form "X gives Y N points" per transaction. A single game round may require multiple transactions (e.g., winner collects from 2 losers separately) — the scorer simply taps Add once per transaction.
 - **Settlement:** Show minimum transfers to zero everyone out
 - **History:** None — current session only
 - **Persistence:** sessionStorage for crash protection (not long-term storage)
@@ -53,12 +53,15 @@ A mobile web app for tracking scores during mahjong (3 players) and rummy (4 pla
   - Labels use "Who lost?" / "Who won?" to avoid directional confusion
 
 - **Round log** (below the form):
-  - List of all rounds entered this session
+  - List of all transactions entered this session
   - Format: `#1: Alton → Michelle: 30 pts` (arrow = loser pays winner)
   - Each entry has an **undo/delete button** (trash icon or X)
-  - Deleting a round recalculates standings
+  - Deleting a transaction recalculates standings
+  - **Empty state:** Shows "No rounds yet" hint when no transactions logged
 
-- **"End Game — Settle Up" button** — transitions to Settlement screen
+- **"Back to Setup" link** (top of screen) — returns to Setup screen. Shows confirmation dialog if any rounds have been entered: "Go back to setup? All rounds will be lost." Useful if the scorer picked the wrong game type or player count.
+
+- **"End Game — Settle Up" button** — transitions to Settlement screen. Shows confirmation dialog: "End the game and settle up?" to prevent accidental taps.
 
 - **Auto-save:** Every state change writes to `sessionStorage` (key: `mahmahmia-state`). On page load, if saved state exists for an in-progress game, restore it automatically.
 
@@ -73,7 +76,9 @@ A mobile web app for tracking scores during mahjong (3 players) and rummy (4 pla
   - List of minimized transfers to clear all debts
   - Format: `Alton → pays → Michelle: 30 pts`
   - Debtors in red, creditors in green
+  - **All-even edge case:** If all net scores are zero, show "Everyone is even — nothing to settle!" instead of an empty transfer list
 
+- **"Back to Scoring" button** — returns to Scoring screen with all data intact, in case a transaction was entered wrong and needs to be fixed before re-settling
 - **"New Game" button** — clears all state (including sessionStorage) and returns to Setup screen
 
 ## Settlement Algorithm
@@ -109,6 +114,7 @@ This produces the minimum number of transfers for small player counts.
 - **Clear language:** "Who lost?" / "Who won?" instead of abstract "From" / "To"
 - **Error prevention:** Auto-exclude same player, validate before allowing submission
 - **Crash-safe:** sessionStorage auto-save means no progress lost on accidental refresh
+- **Accessible color coding:** Scores use `+`/`-` prefix in addition to green/red coloring, so color is not the only indicator
 
 ## Out of Scope
 
