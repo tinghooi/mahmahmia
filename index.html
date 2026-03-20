@@ -56,6 +56,14 @@
     .player-btn.selected-loser { background: #7f1d1d; border-color: #ef4444; color: #fca5a5; }
     .player-btn.selected-winner { background: #14532d; border-color: #22c55e; color: #86efac; }
     .player-btn.disabled { opacity: 0.25; pointer-events: none; }
+    .log-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; cursor: pointer; user-select: none;
+    }
+    .log-chevron { color: #888; font-size: 14px; transition: transform 0.2s; }
+    .log-chevron.open { transform: rotate(90deg); }
+    .log-collapsed { display: none; }
+    .log-expanded { display: block; }
     .round-entry {
       display: flex; justify-content: space-between; align-items: center;
       padding: 8px 0; border-bottom: 1px solid #222; font-size: 14px;
@@ -101,11 +109,11 @@
     <div class="label">Log a Transaction</div>
     <div class="panel">
       <div style="margin-bottom:10px;">
-        <div class="label">Who lost?</div>
+        <div class="label">Who pays?</div>
         <div id="loser-buttons" class="player-buttons"></div>
       </div>
       <div style="margin-bottom:10px;">
-        <div class="label">Who won?</div>
+        <div class="label">Who gets?</div>
         <div id="winner-buttons" class="player-buttons"></div>
       </div>
       <div style="display:flex;gap:8px;align-items:end;">
@@ -118,8 +126,11 @@
       <div id="scoring-error" style="color:#ef4444;font-size:14px;min-height:20px;margin-top:4px;"></div>
     </div>
 
-    <div class="label">Round Log</div>
-    <div class="panel" id="round-log"></div>
+    <div class="log-header" onclick="toggleLog()">
+      <span class="label" style="margin-bottom:0;" id="log-label">Log (0)</span>
+      <span class="log-chevron" id="log-chevron">▸</span>
+    </div>
+    <div class="panel log-collapsed" id="round-log"></div>
 
     <button class="btn btn-danger" onclick="endGame()">End Game — Settle Up</button>
   </section>
@@ -265,25 +276,36 @@
       renderRoundLog();
       const entries = document.querySelectorAll('.round-entry');
       if (entries.length > 0) {
-        const last = entries[entries.length - 1];
-        last.classList.add('flash');
-        setTimeout(() => last.classList.remove('flash'), 600);
+        entries[0].classList.add('flash');
+        setTimeout(() => entries[0].classList.remove('flash'), 600);
       }
       saveState();
     }
 
+    let logOpen = false;
+
+    function toggleLog() {
+      logOpen = !logOpen;
+      const container = document.getElementById('round-log');
+      const chevron = document.getElementById('log-chevron');
+      container.className = logOpen ? 'panel log-expanded' : 'panel log-collapsed';
+      chevron.className = logOpen ? 'log-chevron open' : 'log-chevron';
+    }
+
     function renderRoundLog() {
       const container = document.getElementById('round-log');
+      document.getElementById('log-label').textContent = `Log (${rounds.length})`;
       if (rounds.length === 0) {
-        container.innerHTML = '<div style="color:#666;font-size:14px;padding:4px 0;">No rounds yet</div>';
+        container.innerHTML = '<div style="color:#666;font-size:14px;padding:4px 0;">No entries yet</div>';
         return;
       }
-      container.innerHTML = rounds.map((r, i) =>
-        `<div class="round-entry">
-          <span>#${i + 1}: ${esc(r.loser)} → ${esc(r.winner)}: ${r.points} pts</span>
-          <button class="delete-btn" onclick="deleteRound(${i})" title="Delete">✕</button>
-        </div>`
-      ).join('');
+      container.innerHTML = rounds.slice().reverse().map((r, i) => {
+        const num = rounds.length - i;
+        return `<div class="round-entry">
+          <span>#${num}: ${esc(r.loser)} → ${esc(r.winner)}: ${r.points} pts</span>
+          <button class="delete-btn" onclick="deleteRound(${rounds.length - 1 - i})" title="Delete">✕</button>
+        </div>`;
+      }).join('');
     }
 
     function deleteRound(index) {
