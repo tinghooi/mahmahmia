@@ -152,7 +152,7 @@
       <div style="display:flex;gap:8px;align-items:end;">
         <div style="flex:1;">
           <div class="label">Points</div>
-          <input type="number" id="points" inputmode="numeric" placeholder="" min="1" step="1" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')addRound()">
+          <input type="number" id="points" inputmode="decimal" placeholder="" min="0.5" step="any" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')addRound()">
         </div>
         <button class="btn btn-primary" onclick="addRound()" style="width:auto;padding:14px 24px;margin-top:0;">+ Add</button>
       </div>
@@ -424,8 +424,8 @@
         document.getElementById('scoring-error').textContent = 'Select who pays and who gets.';
         return;
       }
-      const points = parseInt(pointsInput.value, 10);
-      if (!points || points <= 0 || points !== Number(pointsInput.value)) {
+      const points = parseFloat(pointsInput.value);
+      if (!points || points <= 0 || isNaN(points)) {
         document.getElementById('scoring-error').textContent = 'Enter a valid point amount.';
         return;
       }
