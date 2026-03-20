@@ -4,21 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#0f0f1a">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#f5f0e8">
   <title>MahMahMia</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      background: #0f0f1a;
-      color: #e0e0e0;
+      background: #f5f0e8;
+      color: #3d2e1e;
       min-height: 100dvh;
       padding: 16px;
       font-size: 16px;
     }
-    h1 { text-align: center; font-size: 24px; margin-bottom: 4px; }
-    .subtitle { text-align: center; color: #888; font-size: 14px; margin-bottom: 20px; }
+    h1 { text-align: center; font-size: 24px; margin-bottom: 4px; color: #3d2e1e; }
+    .subtitle { text-align: center; color: #8a7560; font-size: 14px; margin-bottom: 20px; }
     section { display: none; max-width: 420px; margin: 0 auto; }
     section.active { display: block; }
     .btn {
@@ -27,85 +27,91 @@
       min-height: 48px;
       transition: transform 0.1s, opacity 0.1s;
     }
-    .btn-primary { background: #4a9eff; color: #fff; }
-    .btn-success { background: #22c55e; color: #fff; }
-    .btn-danger { background: #ef4444; color: #fff; }
-    .btn-ghost { background: none; color: #888; text-decoration: underline; border: none; font-size: 14px; cursor: pointer; padding: 8px; }
+    .btn-primary { background: #c4873b; color: #fff; }
+    .btn-success { background: #2d7d46; color: #fff; }
+    .btn-danger { background: #c44b3f; color: #fff; }
+    .btn-ghost { background: none; color: #8a7560; text-decoration: underline; border: none; font-size: 14px; cursor: pointer; padding: 8px; }
     input, select {
-      width: 100%; padding: 12px; border: 1px solid #333; border-radius: 8px;
-      background: #1a1a2e; color: #e0e0e0; font-size: 16px; margin-bottom: 8px;
+      width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;
+      background: #fff; color: #3d2e1e; font-size: 16px; margin-bottom: 8px;
       min-height: 48px;
     }
+    input::placeholder { color: #bbb; }
     select { appearance: none; }
-    .label { font-size: 12px; text-transform: uppercase; color: #888; letter-spacing: 0.5px; margin-bottom: 6px; }
-    .panel { background: #1a1a2e; border-radius: 10px; padding: 12px; margin-bottom: 16px; }
-    .score-pos { color: #22c55e; }
-    .score-neg { color: #ef4444; }
-    .score-zero { color: #888; }
+    .label { font-size: 12px; text-transform: uppercase; color: #8a7560; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .panel { background: #fff; border-radius: 10px; padding: 12px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .score-pos { color: #2d7d46; }
+    .score-neg { color: #c44b3f; }
+    .score-zero { color: #8a7560; }
     .btn-toggle {
-      flex: 1; padding: 12px; border: 1px solid #333; border-radius: 8px;
-      background: #1a1a2e; color: #888; font-size: 14px; font-weight: 600; cursor: pointer;
+      flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px;
+      background: #fff; color: #8a7560; font-size: 14px; font-weight: 600; cursor: pointer;
       transition: transform 0.1s, opacity 0.1s, background 0.15s, color 0.15s;
     }
     .btn-toggle.active { background: #7c3aed; color: #fff; border-color: #7c3aed; }
     .player-buttons { display: flex; gap: 6px; }
     .player-btn {
-      flex: 1; padding: 10px 4px; border: 2px solid #333; border-radius: 10px;
-      background: #1a1a2e; color: #e0e0e0; font-size: 14px; font-weight: 600;
+      flex: 1; padding: 10px 4px; border: 2px solid #ddd; border-radius: 10px;
+      background: #fff; color: #3d2e1e; font-size: 14px; font-weight: 600;
       cursor: pointer; min-height: 44px; text-align: center;
       transition: transform 0.1s, background 0.15s, border-color 0.15s, color 0.15s;
     }
     .player-btn:active { transform: scale(0.95); }
-    .player-btn.selected-loser { background: #7f1d1d; border-color: #ef4444; color: #fca5a5; }
-    .player-btn.selected-winner { background: #14532d; border-color: #22c55e; color: #86efac; }
+    .player-btn.selected-loser { background: #fde8e8; border-color: #c44b3f; color: #c44b3f; }
+    .player-btn.selected-winner { background: #e8f5e9; border-color: #2d7d46; color: #2d7d46; }
     .player-btn.disabled { opacity: 0.25; pointer-events: none; }
     .quick-amounts { display: flex; gap: 6px; margin-bottom: 10px; }
     .quick-amt {
-      flex: 1; padding: 8px 4px; border: 1px solid #333; border-radius: 8px;
-      background: #1a1a2e; color: #4a9eff; font-size: 14px; font-weight: 700;
+      flex: 1; padding: 8px 4px; border: 1px solid #ddd; border-radius: 8px;
+      background: #fff; color: #c4873b; font-size: 14px; font-weight: 700;
       cursor: pointer; text-align: center; min-height: 38px;
       transition: transform 0.1s, background 0.15s;
     }
-    .quick-amt:active { transform: scale(0.95); background: #253350; }
+    .quick-amt:active { transform: scale(0.95); background: #faf0e0; }
     .success-banner {
-      background: #166534; color: #86efac; padding: 10px 14px; border-radius: 10px;
+      background: #e8f5e9; color: #2d7d46; padding: 10px 14px; border-radius: 10px;
       font-size: 13px; font-weight: 600; margin-bottom: 12px; text-align: center;
       line-height: 1.4;
       transition: opacity 0.3s ease, max-height 0.3s ease;
       max-height: 80px; opacity: 1; overflow: hidden;
     }
     .success-banner.hidden { max-height: 0; opacity: 0; padding: 0 14px; margin-bottom: 0; }
-    .success-banner .banner-detail { font-size: 12px; color: #6ee7a0; opacity: 0.8; }
+    .success-banner .banner-detail { font-size: 12px; color: #4a9a5a; opacity: 0.8; }
     @keyframes pulse-panel {
-      0% { border-color: #4a9eff; }
-      100% { border-color: transparent; }
+      0% { box-shadow: 0 0 0 2px #c4873b; }
+      100% { box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
     }
-    .standings-flash { animation: pulse-panel 0.8s ease-out; border-color: #4a9eff; border-width: 2px; border-style: solid; }
+    .standings-flash { animation: pulse-panel 0.8s ease-out; }
     .log-header {
       display: flex; justify-content: space-between; align-items: center;
       padding: 8px 0; cursor: pointer; user-select: none;
     }
-    .log-chevron { color: #888; font-size: 14px; transition: transform 0.2s; }
+    .log-chevron { color: #8a7560; font-size: 14px; transition: transform 0.2s; }
     .log-chevron.open { transform: rotate(90deg); }
     .log-collapsed { display: none; }
     .log-expanded { display: block; }
     .round-entry {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 8px 0; border-bottom: 1px solid #222; font-size: 14px;
+      padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px;
     }
     .round-entry:last-child { border-bottom: none; }
     .delete-btn {
-      background: none; border: none; color: #ef4444; cursor: pointer;
+      background: none; border: none; color: #c44b3f; cursor: pointer;
       font-size: 18px; padding: 4px 8px; min-height: 44px; min-width: 44px;
     }
     .btn:active { transform: scale(0.97); opacity: 0.85; }
     .btn-toggle:active { transform: scale(0.97); opacity: 0.85; }
     .btn-ghost:active { opacity: 0.5; }
     .delete-btn:active { opacity: 0.5; }
-    .player-title { font-size: 11px; opacity: 0.6; margin-left: 6px; }
-    .standings-panel { border-top: 3px solid #4a9eff; }
+    .player-title {
+      font-size: 10px; margin-left: 6px; padding: 2px 6px; border-radius: 4px;
+      background: #f0ebe3; color: #8a7560; display: inline-block; vertical-align: middle;
+    }
+    .score-pos .player-title { background: #e8f5e9; color: #2d7d46; }
+    .score-neg .player-title { background: #fde8e8; color: #c44b3f; }
+    .standings-panel { border-top: 3px solid #c4873b; }
     @keyframes flash-in {
-      from { background: rgba(74, 158, 255, 0.2); }
+      from { background: rgba(196, 135, 59, 0.15); }
       to { background: transparent; }
     }
     .round-entry.flash { animation: flash-in 0.6s ease-out; }
@@ -160,13 +166,13 @@
     </div>
     <div class="panel log-collapsed" id="round-log"></div>
 
-    <button class="btn-ghost" onclick="endGame()" style="display:block;width:100%;text-align:center;margin-top:16px;color:#ef4444;">End Game — Settle Up</button>
+    <button class="btn-ghost" onclick="endGame()" style="display:block;width:100%;text-align:center;margin-top:16px;color:#c44b3f;">End Game — Settle Up</button>
   </section>
 
   <section id="settlement">
     <div style="text-align:center;margin-bottom:16px;">
       <div style="font-size:20px;font-weight:bold;">Game Over!</div>
-      <div id="settlement-flavor" style="color:#fbbf24;font-size:14px;margin-top:6px;"></div>
+      <div id="settlement-flavor" style="color:#c4873b;font-size:14px;margin-top:6px;"></div>
     </div>
 
     <div class="label">Final Scores</div>
@@ -543,11 +549,11 @@
         container.innerHTML = '<div style="color:#22c55e;text-align:center;padding:8px;">大家打平了！</div>';
       } else {
         container.innerHTML = transfers.map(t =>
-          `<div style="display:flex;align-items:center;gap:8px;padding:12px 0;border-bottom:1px solid #222;">
+          `<div style="display:flex;align-items:center;gap:8px;padding:12px 0;border-bottom:1px solid #eee;">
             <span class="score-neg" style="font-weight:600;font-size:16px;">${esc(t.from)}</span>
-            <span style="color:#888;">→</span>
+            <span style="color:#8a7560;">→</span>
             <span class="score-pos" style="font-weight:600;font-size:16px;">${esc(t.to)}</span>
-            <span style="margin-left:auto;font-weight:800;font-size:18px;color:#fff;">${t.amount} pts</span>
+            <span style="margin-left:auto;font-weight:800;font-size:18px;color:#3d2e1e;">${t.amount} pts</span>
           </div>`
         ).join('');
       }
