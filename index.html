@@ -33,7 +33,7 @@
       background: #1a1a2e; color: #e0e0e0; font-size: 16px; margin-bottom: 8px;
       min-height: 48px;
     }
-    select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+    select { appearance: none; }
     .label { font-size: 12px; text-transform: uppercase; color: #888; letter-spacing: 0.5px; margin-bottom: 6px; }
     .panel { background: #1a1a2e; border-radius: 10px; padding: 12px; margin-bottom: 16px; }
     .score-pos { color: #22c55e; }
@@ -45,6 +45,17 @@
       transition: transform 0.1s, opacity 0.1s, background 0.15s, color 0.15s;
     }
     .btn-toggle.active { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+    .player-buttons { display: flex; gap: 6px; }
+    .player-btn {
+      flex: 1; padding: 10px 4px; border: 2px solid #333; border-radius: 10px;
+      background: #1a1a2e; color: #e0e0e0; font-size: 14px; font-weight: 600;
+      cursor: pointer; min-height: 44px; text-align: center;
+      transition: transform 0.1s, background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .player-btn:active { transform: scale(0.95); }
+    .player-btn.selected-loser { background: #7f1d1d; border-color: #ef4444; color: #fca5a5; }
+    .player-btn.selected-winner { background: #14532d; border-color: #22c55e; color: #86efac; }
+    .player-btn.disabled { opacity: 0.25; pointer-events: none; }
     .round-entry {
       display: flex; justify-content: space-between; align-items: center;
       padding: 8px 0; border-bottom: 1px solid #222; font-size: 14px;
@@ -89,18 +100,18 @@
 
     <div class="label">Log a Transaction</div>
     <div class="panel">
-      <div style="margin-bottom:8px;">
+      <div style="margin-bottom:10px;">
         <div class="label">Who lost?</div>
-        <select id="loser"></select>
+        <div id="loser-buttons" class="player-buttons"></div>
       </div>
-      <div style="margin-bottom:8px;">
+      <div style="margin-bottom:10px;">
         <div class="label">Who won?</div>
-        <select id="winner"></select>
+        <div id="winner-buttons" class="player-buttons"></div>
       </div>
       <div style="display:flex;gap:8px;align-items:end;">
         <div style="flex:1;">
           <div class="label">Points</div>
-          <input type="number" id="points" inputmode="numeric" placeholder="0" min="1" step="1" style="margin-bottom:0;">
+          <input type="number" id="points" inputmode="numeric" placeholder="0" min="1" step="1" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')addRound()">
         </div>
         <button class="btn btn-primary" onclick="addRound()" style="width:auto;padding:14px 24px;margin-top:0;">+ Add</button>
       </div>
@@ -173,7 +184,7 @@
     function renderScoring() {
       document.getElementById('scoring-error').textContent = '';
       renderStandings();
-      renderDropdowns();
+      renderPlayerButtons();
       renderRoundLog();
     }
 
@@ -202,38 +213,54 @@
 
     function renderStandings() { renderScorePanel('standings'); }
 
-    function renderDropdowns() {
-      const loserSelect = document.getElementById('loser');
-      const winnerSelect = document.getElementById('winner');
-      loserSelect.innerHTML = players.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
-      updateWinnerDropdown();
-      loserSelect.onchange = updateWinnerDropdown;
+    let selectedLoser = null;
+    let selectedWinner = null;
+
+    function renderPlayerButtons() {
+      const loserContainer = document.getElementById('loser-buttons');
+      const winnerContainer = document.getElementById('winner-buttons');
+
+      loserContainer.innerHTML = players.map(p => {
+        const sel = p === selectedLoser ? ' selected-loser' : '';
+        return `<button class="player-btn${sel}" onclick="selectLoser('${esc(p)}')">${esc(p)}</button>`;
+      }).join('');
+
+      winnerContainer.innerHTML = players.map(p => {
+        const dis = p === selectedLoser ? ' disabled' : '';
+        const sel = p === selectedWinner ? ' selected-winner' : '';
+        return `<button class="player-btn${sel}${dis}" onclick="selectWinner('${esc(p)}')">${esc(p)}</button>`;
+      }).join('');
     }
 
-    function updateWinnerDropdown() {
-      const loser = document.getElementById('loser').value;
-      const winnerSelect = document.getElementById('winner');
-      const prev = winnerSelect.value;
-      winnerSelect.innerHTML = players
-        .filter(p => p !== loser)
-        .map(p => `<option value="${esc(p)}">${esc(p)}</option>`)
-        .join('');
-      if (players.includes(prev) && prev !== loser) winnerSelect.value = prev;
+    function selectLoser(name) {
+      selectedLoser = name;
+      if (selectedWinner === name) selectedWinner = null;
+      renderPlayerButtons();
+    }
+
+    function selectWinner(name) {
+      if (name === selectedLoser) return;
+      selectedWinner = name;
+      renderPlayerButtons();
+      document.getElementById('points').focus();
     }
 
     function addRound() {
-      const loser = document.getElementById('loser').value;
-      const winner = document.getElementById('winner').value;
       const pointsInput = document.getElementById('points');
+      if (!selectedLoser || !selectedWinner) {
+        document.getElementById('scoring-error').textContent = 'Select who lost and who won.';
+        return;
+      }
       const points = parseInt(pointsInput.value, 10);
       if (!points || points <= 0 || points !== Number(pointsInput.value)) {
         document.getElementById('scoring-error').textContent = 'Enter a valid point amount.';
         return;
       }
       document.getElementById('scoring-error').textContent = '';
-      rounds.push({ loser, winner, points });
+      rounds.push({ loser: selectedLoser, winner: selectedWinner, points });
       pointsInput.value = '';
       pointsInput.focus();
+      // Keep loser/winner selected for quick consecutive entries
       renderStandings();
       renderRoundLog();
       const entries = document.querySelectorAll('.round-entry');
