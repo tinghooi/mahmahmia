@@ -328,23 +328,9 @@
     }
 
     function quickAdd(pts) {
-      if (!selectedLoser || !selectedWinner) {
-        document.getElementById('scoring-error').textContent = 'Select who pays and who gets first.';
-        return;
-      }
-      document.getElementById('scoring-error').textContent = '';
-      rounds.push({ loser: selectedLoser, winner: selectedWinner, points: pts });
-      showToast(`${selectedLoser} → ${selectedWinner}: ${pts} pts`);
-      renderStandings();
-      flashStandings();
-      renderRoundLog();
-      renderQuickAmounts();
-      const entries = document.querySelectorAll('.round-entry');
-      if (entries.length > 0) {
-        entries[0].classList.add('flash');
-        setTimeout(() => entries[0].classList.remove('flash'), 600);
-      }
-      saveState();
+      const pointsInput = document.getElementById('points');
+      pointsInput.value = pts;
+      pointsInput.focus();
     }
 
     function addRound() {
