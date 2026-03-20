@@ -43,6 +43,15 @@
       background: #1a1a2e; color: #888; font-size: 14px; font-weight: 600; cursor: pointer;
     }
     .btn-toggle.active { background: #4a9eff; color: #fff; border-color: #4a9eff; }
+    .round-entry {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 0; border-bottom: 1px solid #222; font-size: 14px;
+    }
+    .round-entry:last-child { border-bottom: none; }
+    .delete-btn {
+      background: none; border: none; color: #ef4444; cursor: pointer;
+      font-size: 18px; padding: 4px 8px; min-height: 36px; min-width: 36px;
+    }
   </style>
 </head>
 <body>
@@ -61,7 +70,35 @@
   </section>
 
   <section id="scoring">
-    <!-- Tasks 3 & 4 -->
+    <button class="btn-ghost" onclick="backToSetup()">← Back to Setup</button>
+
+    <div class="label">Standings</div>
+    <div class="panel" id="standings"></div>
+
+    <div class="label">Log a Transaction</div>
+    <div class="panel">
+      <div style="margin-bottom:8px;">
+        <div class="label">Who lost?</div>
+        <select id="loser"></select>
+      </div>
+      <div style="margin-bottom:8px;">
+        <div class="label">Who won?</div>
+        <select id="winner"></select>
+      </div>
+      <div style="display:flex;gap:8px;align-items:end;">
+        <div style="flex:1;">
+          <div class="label">Points</div>
+          <input type="number" id="points" inputmode="numeric" placeholder="0" min="1" step="1" style="margin-bottom:0;">
+        </div>
+        <button class="btn btn-primary" onclick="addRound()" style="width:auto;padding:14px 24px;margin-top:0;">+ Add</button>
+      </div>
+      <div id="scoring-error" style="color:#ef4444;font-size:14px;min-height:20px;margin-top:4px;"></div>
+    </div>
+
+    <div class="label">Round Log</div>
+    <div class="panel" id="round-log"></div>
+
+    <button class="btn btn-danger" onclick="endGame()">End Game — Settle Up</button>
   </section>
 
   <section id="settlement">
@@ -80,8 +117,112 @@
     function clearState() {}
     function restoreState() { return false; }
 
-    // --- Scoring stub (replaced in Task 3) ---
-    function renderScoring() {}
+    // --- Scoring ---
+    function renderScoring() {
+      renderStandings();
+      renderDropdowns();
+      renderRoundLog();
+    }
+
+    function getNetScores() {
+      const scores = {};
+      players.forEach(p => scores[p] = 0);
+      rounds.forEach(r => {
+        scores[r.loser] -= r.points;
+        scores[r.winner] += r.points;
+      });
+      return scores;
+    }
+
+    function renderStandings() {
+      const scores = getNetScores();
+      const sorted = players.slice().sort((a, b) => scores[b] - scores[a]);
+      const container = document.getElementById('standings');
+      container.innerHTML = sorted.map(p => {
+        const s = scores[p];
+        const cls = s > 0 ? 'score-pos' : s < 0 ? 'score-neg' : 'score-zero';
+        const prefix = s > 0 ? '+' : '';
+        return `<div style="display:flex;justify-content:space-between;padding:6px 0;" class="${cls}">
+          <span>${p}</span><span>${prefix}${s}</span>
+        </div>`;
+      }).join('');
+    }
+
+    function renderDropdowns() {
+      const loserSelect = document.getElementById('loser');
+      const winnerSelect = document.getElementById('winner');
+      loserSelect.innerHTML = players.map(p => `<option value="${p}">${p}</option>`).join('');
+      updateWinnerDropdown();
+      loserSelect.onchange = updateWinnerDropdown;
+    }
+
+    function updateWinnerDropdown() {
+      const loser = document.getElementById('loser').value;
+      const winnerSelect = document.getElementById('winner');
+      const prev = winnerSelect.value;
+      winnerSelect.innerHTML = players
+        .filter(p => p !== loser)
+        .map(p => `<option value="${p}">${p}</option>`)
+        .join('');
+      if (players.includes(prev) && prev !== loser) winnerSelect.value = prev;
+    }
+
+    function addRound() {
+      const loser = document.getElementById('loser').value;
+      const winner = document.getElementById('winner').value;
+      const pointsInput = document.getElementById('points');
+      const points = parseInt(pointsInput.value, 10);
+      if (!points || points <= 0) {
+        document.getElementById('scoring-error').textContent = 'Enter a valid point amount.';
+        return;
+      }
+      document.getElementById('scoring-error').textContent = '';
+      rounds.push({ loser, winner, points });
+      pointsInput.value = '';
+      renderStandings();
+      renderRoundLog();
+      saveState();
+    }
+
+    function renderRoundLog() {
+      const container = document.getElementById('round-log');
+      if (rounds.length === 0) {
+        container.innerHTML = '<div style="color:#666;font-size:14px;padding:4px 0;">No rounds yet</div>';
+        return;
+      }
+      container.innerHTML = rounds.map((r, i) =>
+        `<div class="round-entry">
+          <span>#${i + 1}: ${r.loser} → ${r.winner}: ${r.points} pts</span>
+          <button class="delete-btn" onclick="deleteRound(${i})" title="Delete">✕</button>
+        </div>`
+      ).join('');
+    }
+
+    function deleteRound(index) {
+      rounds.splice(index, 1);
+      renderStandings();
+      renderRoundLog();
+      saveState();
+    }
+
+    // --- Navigation ---
+    function backToSetup() {
+      if (rounds.length > 0 && !confirm('Go back to setup? All rounds will be lost.')) return;
+      rounds = [];
+      clearState();
+      document.getElementById('btn-mahjong').classList.toggle('active', gameType === 'mahjong');
+      document.getElementById('btn-rummy').classList.toggle('active', gameType === 'rummy');
+      renderNameInputs();
+      showScreen('setup');
+    }
+
+    function endGame() {
+      if (!confirm('End the game and settle up?')) return;
+      renderSettlement();
+      showScreen('settlement');
+    }
+
+    function renderSettlement() {} // stub, replaced in Task 6
 
     // --- State ---
     let gameType = 'mahjong';
