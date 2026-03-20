@@ -22,6 +22,7 @@
       display: block; width: 100%; padding: 14px; border: none; border-radius: 10px;
       font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 12px;
       min-height: 48px;
+      transition: transform 0.1s, opacity 0.1s;
     }
     .btn-primary { background: #4a9eff; color: #fff; }
     .btn-success { background: #22c55e; color: #fff; }
@@ -41,8 +42,9 @@
     .btn-toggle {
       flex: 1; padding: 12px; border: 1px solid #333; border-radius: 8px;
       background: #1a1a2e; color: #888; font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: transform 0.1s, opacity 0.1s, background 0.15s, color 0.15s;
     }
-    .btn-toggle.active { background: #4a9eff; color: #fff; border-color: #4a9eff; }
+    .btn-toggle.active { background: #7c3aed; color: #fff; border-color: #7c3aed; }
     .round-entry {
       display: flex; justify-content: space-between; align-items: center;
       padding: 8px 0; border-bottom: 1px solid #222; font-size: 14px;
@@ -52,6 +54,16 @@
       background: none; border: none; color: #ef4444; cursor: pointer;
       font-size: 18px; padding: 4px 8px; min-height: 44px; min-width: 44px;
     }
+    .btn:active { transform: scale(0.97); opacity: 0.85; }
+    .btn-toggle:active { transform: scale(0.97); opacity: 0.85; }
+    .btn-ghost:active { opacity: 0.5; }
+    .delete-btn:active { opacity: 0.5; }
+    .standings-panel { border-top: 3px solid #4a9eff; }
+    @keyframes flash-in {
+      from { background: rgba(74, 158, 255, 0.2); }
+      to { background: transparent; }
+    }
+    .round-entry.flash { animation: flash-in 0.6s ease-out; }
   </style>
 </head>
 <body>
@@ -73,7 +85,7 @@
     <button class="btn-ghost" onclick="backToSetup()">← Back to Setup</button>
 
     <div class="label">Standings</div>
-    <div class="panel" id="standings"></div>
+    <div class="panel standings-panel" id="standings"></div>
 
     <div class="label">Log a Transaction</div>
     <div class="panel">
@@ -107,7 +119,7 @@
     </div>
 
     <div class="label">Final Scores</div>
-    <div class="panel" id="final-scores"></div>
+    <div class="panel standings-panel" id="final-scores"></div>
 
     <div class="label">Who Pays Who</div>
     <div class="panel" id="transfers"></div>
@@ -221,8 +233,15 @@
       document.getElementById('scoring-error').textContent = '';
       rounds.push({ loser, winner, points });
       pointsInput.value = '';
+      pointsInput.focus();
       renderStandings();
       renderRoundLog();
+      const entries = document.querySelectorAll('.round-entry');
+      if (entries.length > 0) {
+        const last = entries[entries.length - 1];
+        last.classList.add('flash');
+        setTimeout(() => last.classList.remove('flash'), 600);
+      }
       saveState();
     }
 
@@ -305,7 +324,7 @@
             <span class="score-neg">${esc(t.from)}</span>
             <span style="color:#888;">→ pays →</span>
             <span class="score-pos">${esc(t.to)}</span>
-            <span style="margin-left:auto;font-weight:bold;">: ${t.amount} pts</span>
+            <span style="margin-left:auto;font-weight:bold;font-size:16px;">${t.amount} pts</span>
           </div>`
         ).join('');
       }
