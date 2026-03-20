@@ -191,6 +191,11 @@
       document.getElementById(id).classList.add('active');
     }
 
+    // --- Number formatting ---
+    function fmt(n) {
+      return Number.isInteger(n) ? String(n) : n.toFixed(2);
+    }
+
     // --- XSS escape helper ---
     function esc(str) {
       const el = document.createElement('span');
@@ -340,13 +345,13 @@
           return `<div style="padding:8px 0;" class="${cls} standings-row">
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <span style="font-weight:600;font-size:16px;">${esc(p)}</span>
-              <span style="font-weight:700;font-size:18px;">${prefix}${s}</span>
+              <span style="font-weight:700;font-size:18px;">${prefix}${fmt(s)}</span>
             </div>
             <div class="player-title">${t.emoji} ${t.text}</div>
           </div>`;
         }
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;" class="${cls}">
-      <span>${esc(p)}</span><span style="font-weight:700;">${prefix}${s}</span>
+      <span>${esc(p)}</span><span style="font-weight:700;">${prefix}${fmt(s)}</span>
     </div>`;
       }).join('');
     }
@@ -433,7 +438,7 @@
       rounds.push({ loser: selectedLoser, winner: selectedWinner, points });
       pointsInput.value = '';
       pointsInput.blur();
-      showToast(funToast(selectedLoser, selectedWinner, points), `${selectedLoser} → ${selectedWinner}: ${points} pts`);
+      showToast(funToast(selectedLoser, selectedWinner, points), `${selectedLoser} → ${selectedWinner}: ${fmt(points)} pts`);
       soundCoin();
       // Keep loser/winner selected for quick consecutive entries
       renderStandings();
@@ -468,7 +473,7 @@
       container.innerHTML = rounds.slice().reverse().map((r, i) => {
         const num = rounds.length - i;
         return `<div class="round-entry">
-          <span>#${num}: ${esc(r.loser)} → ${esc(r.winner)}: ${r.points} pts</span>
+          <span>#${num}: ${esc(r.loser)} → ${esc(r.winner)}: ${fmt(r.points)} pts</span>
           <button class="delete-btn" onclick="deleteRound(${rounds.length - 1 - i})" title="Delete">✕</button>
         </div>`;
       }).join('');
@@ -560,7 +565,7 @@
             <span class="score-neg" style="font-weight:600;font-size:16px;">${esc(t.from)}</span>
             <span style="color:#8a7560;">→</span>
             <span class="score-pos" style="font-weight:600;font-size:16px;">${esc(t.to)}</span>
-            <span style="margin-left:auto;font-weight:800;font-size:18px;color:#3d2e1e;">${t.amount} pts</span>
+            <span style="margin-left:auto;font-weight:800;font-size:18px;color:#3d2e1e;">${fmt(t.amount)} pts</span>
           </div>`
         ).join('');
       }
