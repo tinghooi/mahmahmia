@@ -37,6 +37,7 @@
       min-height: 48px;
     }
     input::placeholder { color: #bbb; }
+    input:focus { border-color: #c4873b; outline: none; }
     select { appearance: none; }
     .label { font-size: 12px; text-transform: uppercase; color: #8a7560; letter-spacing: 0.5px; margin-bottom: 6px; }
     .panel { background: #fff; border-radius: 10px; padding: 12px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
@@ -48,7 +49,7 @@
       background: #fff; color: #8a7560; font-size: 14px; font-weight: 600; cursor: pointer;
       transition: transform 0.1s, opacity 0.1s, background 0.15s, color 0.15s;
     }
-    .btn-toggle.active { background: #7c3aed; color: #fff; border-color: #7c3aed; }
+    .btn-toggle.active { background: #8b5e3c; color: #fff; border-color: #8b5e3c; }
     .player-buttons { display: flex; gap: 6px; }
     .player-btn {
       flex: 1; padding: 10px 4px; border: 2px solid #ddd; border-radius: 10px;
@@ -60,7 +61,7 @@
     .player-btn.selected-loser { background: #fde8e8; border-color: #c44b3f; color: #c44b3f; }
     .player-btn.selected-winner { background: #e8f5e9; border-color: #2d7d46; color: #2d7d46; }
     .player-btn.disabled { opacity: 0.25; pointer-events: none; }
-    .quick-amounts { display: flex; gap: 6px; margin-bottom: 10px; }
+    .quick-amounts { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
     .quick-amt {
       flex: 1; padding: 8px 4px; border: 1px solid #ddd; border-radius: 8px;
       background: #fff; color: #c4873b; font-size: 14px; font-weight: 700;
@@ -121,7 +122,6 @@
   <h1>🀄 MahMahMia</h1>
   <p class="subtitle">Score Tracker</p>
 
-
   <section id="setup" class="active">
     <div class="label">Game Type</div>
     <div style="display:flex;gap:8px;margin-bottom:16px;">
@@ -129,7 +129,7 @@
       <button class="btn btn-toggle" onclick="setGameType('rummy')" id="btn-rummy">Rummy (4)</button>
     </div>
     <div id="name-inputs"></div>
-    <div id="setup-error" style="color:#ef4444;font-size:14px;min-height:20px;margin-top:4px;"></div>
+    <div id="setup-error" style="color:#c44b3f;font-size:14px;min-height:20px;margin-top:4px;"></div>
     <button class="btn btn-success" onclick="startGame()">Start Game →</button>
   </section>
 
@@ -156,7 +156,7 @@
         </div>
         <button class="btn btn-primary" onclick="addRound()" style="width:auto;padding:14px 24px;margin-top:0;">+ Add</button>
       </div>
-      <div id="scoring-error" style="color:#ef4444;font-size:14px;min-height:20px;margin-top:4px;"></div>
+      <div id="scoring-error" style="color:#c44b3f;font-size:14px;min-height:20px;margin-top:4px;"></div>
     </div>
     <div id="success-banner" class="success-banner hidden"></div>
 
@@ -171,7 +171,7 @@
 
   <section id="settlement">
     <div style="text-align:center;margin-bottom:16px;">
-      <div style="font-size:20px;font-weight:bold;">Game Over!</div>
+      <div style="font-size:20px;font-weight:bold;color:#c4873b;">Game Over!</div>
       <div id="settlement-flavor" style="color:#c4873b;font-size:14px;margin-top:6px;"></div>
     </div>
 
@@ -339,7 +339,7 @@
         const title = showTitles && rounds.length > 0
           ? `<span class="player-title">${getTitle(s, p === top, p === bottom)}</span>` : '';
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;" class="${cls}">
-      <span>${esc(p)}${title}</span><span>${prefix}${s}</span>
+      <span>${esc(p)}${title}</span><span style="font-weight:700;">${prefix}${s}</span>
     </div>`;
       }).join('');
     }
@@ -399,7 +399,7 @@
         container.innerHTML = '';
         return;
       }
-      container.innerHTML = '<div class="label">Quick</div>' +
+      container.innerHTML = '<div class="label" style="flex-basis:100%;">Quick</div>' +
         amounts.map(a =>
           `<button class="quick-amt" onclick="quickAdd(${a})">${a}</button>`
         ).join('');
@@ -455,7 +455,7 @@
       const container = document.getElementById('round-log');
       document.getElementById('log-label').textContent = `Log (${rounds.length})`;
       if (rounds.length === 0) {
-        container.innerHTML = '<div style="color:#666;font-size:14px;padding:4px 0;">No entries yet</div>';
+        container.innerHTML = '<div style="color:#8a7560;font-size:14px;padding:4px 0;">No entries yet</div>';
         return;
       }
       container.innerHTML = rounds.slice().reverse().map((r, i) => {
@@ -546,7 +546,7 @@
       // Transfers
       const container = document.getElementById('transfers');
       if (transfers.length === 0) {
-        container.innerHTML = '<div style="color:#22c55e;text-align:center;padding:8px;">大家打平了！</div>';
+        container.innerHTML = '<div style="color:#2d7d46;text-align:center;padding:8px;">大家打平了！</div>';
       } else {
         container.innerHTML = transfers.map(t =>
           `<div style="display:flex;align-items:center;gap:8px;padding:12px 0;border-bottom:1px solid #eee;">
