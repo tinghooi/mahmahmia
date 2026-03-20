@@ -100,6 +100,7 @@
     .btn-toggle:active { transform: scale(0.97); opacity: 0.85; }
     .btn-ghost:active { opacity: 0.5; }
     .delete-btn:active { opacity: 0.5; }
+    .player-title { font-size: 11px; opacity: 0.6; margin-left: 6px; }
     .standings-panel { border-top: 3px solid #4a9eff; }
     @keyframes flash-in {
       from { background: rgba(74, 158, 255, 0.2); }
@@ -163,6 +164,7 @@
   <section id="settlement">
     <div style="text-align:center;margin-bottom:16px;">
       <div style="font-size:20px;font-weight:bold;">Game Over!</div>
+      <div id="settlement-flavor" style="color:#fbbf24;font-size:14px;margin-top:6px;"></div>
     </div>
 
     <div class="label">Final Scores</div>
@@ -190,6 +192,21 @@
     }
 
     // --- Toast ---
+    const toastMsgs = [
+      (l, w, p) => `${l} 又送钱给 ${w} 了`,
+      (l, w, p) => `${w} 发财啦！`,
+      (l, w, p) => `${l} 的钱包在哭`,
+      (l, w, p) => `${l} 又输了！`,
+      (l, w, p) => `${l} 慷慨解囊`,
+      (l, w, p) => `${w} 笑到合不拢嘴`,
+      (l, w, p) => `${l} 破财消灾`,
+      (l, w, p) => `${w} 财源滚滚`,
+    ];
+    function funToast(loser, winner, pts) {
+      const fn = toastMsgs[Math.floor(Math.random() * toastMsgs.length)];
+      return fn(loser, winner, pts);
+    }
+
     let toastTimer = null;
     function showToast(msg) {
       const el = document.getElementById('toast');
@@ -253,20 +270,31 @@
       return scores;
     }
 
-    function renderScorePanel(elementId) {
+    function getTitle(score, isTop, isBottom) {
+      if (score === 0) return '打酱油';
+      if (isTop && score > 0) return '大老板';
+      if (isBottom && score < 0) return '破产王';
+      if (score > 0) return '小赚';
+      return '惨了';
+    }
+
+    function renderScorePanel(elementId, showTitles) {
       const scores = getNetScores();
       const sorted = players.slice().sort((a, b) => scores[b] - scores[a]);
+      const top = sorted[0], bottom = sorted[sorted.length - 1];
       document.getElementById(elementId).innerHTML = sorted.map(p => {
         const s = scores[p];
         const cls = s > 0 ? 'score-pos' : s < 0 ? 'score-neg' : 'score-zero';
         const prefix = s > 0 ? '+' : '';
-        return `<div style="display:flex;justify-content:space-between;padding:6px 0;" class="${cls}">
-      <span>${esc(p)}</span><span>${prefix}${s}</span>
+        const title = showTitles && rounds.length > 0
+          ? `<span class="player-title">${getTitle(s, p === top, p === bottom)}</span>` : '';
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;" class="${cls}">
+      <span>${esc(p)}${title}</span><span>${prefix}${s}</span>
     </div>`;
       }).join('');
     }
 
-    function renderStandings() { renderScorePanel('standings'); }
+    function renderStandings() { renderScorePanel('standings', true); }
 
     let selectedLoser = null;
     let selectedWinner = null;
@@ -348,7 +376,7 @@
       rounds.push({ loser: selectedLoser, winner: selectedWinner, points });
       pointsInput.value = '';
       pointsInput.focus();
-      showToast(`${selectedLoser} → ${selectedWinner}: ${points} pts`);
+      showToast(funToast(selectedLoser, selectedWinner, points));
       // Keep loser/winner selected for quick consecutive entries
       renderStandings();
       flashStandings();
@@ -439,15 +467,33 @@
     }
 
     function renderSettlement() {
+      const scores = getNetScores();
+      const sorted = players.slice().sort((a, b) => scores[b] - scores[a]);
+      const topPlayer = sorted[0];
+      const bottomPlayer = sorted[sorted.length - 1];
+
+      // Settlement flavor text
+      const flavorEl = document.getElementById('settlement-flavor');
+      const transfers = calculateSettlement(scores);
+      if (transfers.length === 0) {
+        flavorEl.textContent = '打平了...再来一局！';
+      } else {
+        const flavors = [
+          `${topPlayer} 今晚请客！`,
+          `${bottomPlayer}，快还钱！别装没看到`,
+          `${topPlayer} 赢麻了，${bottomPlayer} 输惨了`,
+          `${bottomPlayer} 的钱包已阵亡`,
+        ];
+        flavorEl.textContent = flavors[Math.floor(Math.random() * flavors.length)];
+      }
+
       // Final scores
-      renderScorePanel('final-scores');
+      renderScorePanel('final-scores', false);
 
       // Transfers
-      const scores = getNetScores();
-      const transfers = calculateSettlement(scores);
       const container = document.getElementById('transfers');
       if (transfers.length === 0) {
-        container.innerHTML = '<div style="color:#22c55e;text-align:center;padding:8px;">Everyone is even — nothing to settle!</div>';
+        container.innerHTML = '<div style="color:#22c55e;text-align:center;padding:8px;">大家打平了！</div>';
       } else {
         container.innerHTML = transfers.map(t =>
           `<div style="display:flex;align-items:center;gap:8px;padding:12px 0;border-bottom:1px solid #222;">
