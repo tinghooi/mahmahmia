@@ -417,7 +417,7 @@
       document.getElementById('scoring-error').textContent = '';
       rounds.push({ loser: selectedLoser, winner: selectedWinner, points });
       pointsInput.value = '';
-      pointsInput.focus();
+      pointsInput.blur();
       showToast(funToast(selectedLoser, selectedWinner, points));
       soundCoin();
       // Keep loser/winner selected for quick consecutive entries
