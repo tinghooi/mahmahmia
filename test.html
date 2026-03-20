@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>MahMahMia Tests</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #111; color: #eee; }
+    .pass { color: #22c55e; }
+    .fail { color: #ef4444; }
+  </style>
+</head>
+<body>
+  <h2>Settlement Algorithm Tests</h2>
+  <div id="results"></div>
+  <script>
+    let passed = 0, failed = 0;
+    function assert(name, actual, expected) {
+      const ok = JSON.stringify(actual) === JSON.stringify(expected);
+      const div = document.createElement('div');
+      if (ok) {
+        div.className = 'pass';
+        div.textContent = `✓ ${name}`;
+        passed++;
+      } else {
+        div.className = 'fail';
+        div.textContent = `✗ ${name} — expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`;
+        failed++;
+      }
+      document.getElementById('results').appendChild(div);
+    }
+
+    // --- Duplicated from index.html — keep in sync ---
+    function calculateSettlement(netScores) {
+      // Invariant: net scores must sum to zero
+      const sum = Object.values(netScores).reduce((a, b) => a + b, 0);
+      if (sum !== 0) throw new Error(`Net scores do not sum to zero (sum=${sum})`);
+      const debtors = [];
+      const creditors = [];
+      for (const [name, amount] of Object.entries(netScores)) {
+        if (amount < 0) debtors.push({ name, amount: Math.abs(amount) });
+        else if (amount > 0) creditors.push({ name, amount });
+      }
+      debtors.sort((a, b) => b.amount - a.amount);
+      creditors.sort((a, b) => b.amount - a.amount);
+      const transfers = [];
+      let d = 0, c = 0;
+      while (d < debtors.length && c < creditors.length) {
+        const transfer = Math.min(debtors[d].amount, creditors[c].amount);
+        transfers.push({ from: debtors[d].name, to: creditors[c].name, amount: transfer });
+        debtors[d].amount -= transfer;
+        creditors[c].amount -= transfer;
+        if (debtors[d].amount === 0) d++;
+        if (creditors[c].amount === 0) c++;
+      }
+      return transfers;
+    }
+
+    // --- Tests ---
+    // Test 1: Simple 2-player
+    assert('Simple 2-player', calculateSettlement({ A: -30, B: 30 }), [{ from: 'A', to: 'B', amount: 30 }]);
+
+    // Test 2: 3 players, one winner
+    assert('3 players, one winner', calculateSettlement({ Michelle: 45, Alton: -30, Sam: -15 }),
+      [{ from: 'Alton', to: 'Michelle', amount: 30 }, { from: 'Sam', to: 'Michelle', amount: 15 }]);
+
+    // Test 3: All even
+    assert('All even', calculateSettlement({ A: 0, B: 0, C: 0 }), []);
+
+    // Test 4: 4 players, mixed debts
+    assert('4 players mixed', calculateSettlement({ A: 50, B: -20, C: -10, D: -20 }),
+      [{ from: 'B', to: 'A', amount: 20 }, { from: 'D', to: 'A', amount: 20 }, { from: 'C', to: 'A', amount: 10 }]);
+
+    // Test 5: 3 players, 2 winners 1 loser
+    assert('2 winners 1 loser', calculateSettlement({ A: -50, B: 30, C: 20 }),
+      [{ from: 'A', to: 'B', amount: 30 }, { from: 'A', to: 'C', amount: 20 }]);
+
+    // Test 6: 4 players, cross debts needing simplification
+    assert('Cross debts simplified', calculateSettlement({ A: 30, B: -10, C: 10, D: -30 }),
+      [{ from: 'D', to: 'A', amount: 30 }, { from: 'B', to: 'C', amount: 10 }]);
+
+    // Summary
+    const summary = document.createElement('div');
+    summary.style.marginTop = '16px';
+    summary.style.fontWeight = 'bold';
+    summary.textContent = `${passed} passed, ${failed} failed`;
+    summary.className = failed > 0 ? 'fail' : 'pass';
+    document.getElementById('results').appendChild(summary);
+  </script>
+</body>
+</html>

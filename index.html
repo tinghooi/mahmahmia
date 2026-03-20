@@ -223,6 +223,31 @@
       showScreen('settlement');
     }
 
+    function calculateSettlement(netScores) {
+      // Invariant: net scores must sum to zero
+      const sum = Object.values(netScores).reduce((a, b) => a + b, 0);
+      if (sum !== 0) throw new Error(`Net scores do not sum to zero (sum=${sum})`);
+      const debtors = [];
+      const creditors = [];
+      for (const [name, amount] of Object.entries(netScores)) {
+        if (amount < 0) debtors.push({ name, amount: Math.abs(amount) });
+        else if (amount > 0) creditors.push({ name, amount });
+      }
+      debtors.sort((a, b) => b.amount - a.amount);
+      creditors.sort((a, b) => b.amount - a.amount);
+      const transfers = [];
+      let d = 0, c = 0;
+      while (d < debtors.length && c < creditors.length) {
+        const transfer = Math.min(debtors[d].amount, creditors[c].amount);
+        transfers.push({ from: debtors[d].name, to: creditors[c].name, amount: transfer });
+        debtors[d].amount -= transfer;
+        creditors[c].amount -= transfer;
+        if (debtors[d].amount === 0) d++;
+        if (creditors[c].amount === 0) c++;
+      }
+      return transfers;
+    }
+
     function renderSettlement() {} // stub, replaced in Task 6
 
     // --- State ---
