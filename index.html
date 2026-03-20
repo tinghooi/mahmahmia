@@ -102,7 +102,18 @@
   </section>
 
   <section id="settlement">
-    <!-- Task 6 -->
+    <div style="text-align:center;margin-bottom:16px;">
+      <div style="font-size:20px;font-weight:bold;">Game Over!</div>
+    </div>
+
+    <div class="label">Final Scores</div>
+    <div class="panel" id="final-scores"></div>
+
+    <div class="label">Who Pays Who</div>
+    <div class="panel" id="transfers"></div>
+
+    <button class="btn btn-primary" onclick="backToScoring()">← Back to Scoring</button>
+    <button class="btn btn-danger" onclick="newGame()">New Game</button>
   </section>
 
   <script>
@@ -248,7 +259,52 @@
       return transfers;
     }
 
-    function renderSettlement() {} // stub, replaced in Task 6
+    function renderSettlement() {
+      const scores = getNetScores();
+      const sorted = players.slice().sort((a, b) => scores[b] - scores[a]);
+
+      // Final scores
+      document.getElementById('final-scores').innerHTML = sorted.map(p => {
+        const s = scores[p];
+        const cls = s > 0 ? 'score-pos' : s < 0 ? 'score-neg' : 'score-zero';
+        const prefix = s > 0 ? '+' : '';
+        return `<div style="display:flex;justify-content:space-between;padding:6px 0;" class="${cls}">
+          <span>${p}</span><span>${prefix}${s}</span>
+        </div>`;
+      }).join('');
+
+      // Transfers
+      const transfers = calculateSettlement(scores);
+      const container = document.getElementById('transfers');
+      if (transfers.length === 0) {
+        container.innerHTML = '<div style="color:#22c55e;text-align:center;padding:8px;">Everyone is even — nothing to settle!</div>';
+      } else {
+        container.innerHTML = transfers.map(t =>
+          `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #222;">
+            <span class="score-neg">${t.from}</span>
+            <span style="color:#888;">→ pays →</span>
+            <span class="score-pos">${t.to}</span>
+            <span style="margin-left:auto;font-weight:bold;">${t.amount} pts</span>
+          </div>`
+        ).join('');
+      }
+    }
+
+    function backToScoring() {
+      showScreen('scoring');
+    }
+
+    function newGame() {
+      players = [];
+      rounds = [];
+      gameType = 'mahjong';
+      playerCount = 3;
+      clearState();
+      document.getElementById('btn-mahjong').classList.toggle('active', true);
+      document.getElementById('btn-rummy').classList.toggle('active', false);
+      renderNameInputs();
+      showScreen('setup');
+    }
 
     // --- State ---
     let gameType = 'mahjong';
