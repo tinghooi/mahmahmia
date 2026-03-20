@@ -50,7 +50,7 @@
     .round-entry:last-child { border-bottom: none; }
     .delete-btn {
       background: none; border: none; color: #ef4444; cursor: pointer;
-      font-size: 18px; padding: 4px 8px; min-height: 36px; min-width: 36px;
+      font-size: 18px; padding: 4px 8px; min-height: 44px; min-width: 44px;
     }
   </style>
 </head>
@@ -123,6 +123,13 @@
       document.getElementById(id).classList.add('active');
     }
 
+    // --- XSS escape helper ---
+    function esc(str) {
+      const el = document.createElement('span');
+      el.textContent = str;
+      return el.innerHTML;
+    }
+
     // --- Persistence ---
     function saveState() {
       const state = { gameType, playerCount, players, rounds };
@@ -138,6 +145,7 @@
       if (!saved) return false;
       try {
         const state = JSON.parse(saved);
+        if (!Array.isArray(state.players) || !Array.isArray(state.rounds)) throw new Error('invalid');
         gameType = state.gameType;
         playerCount = state.playerCount;
         players = state.players;
@@ -167,24 +175,25 @@
       return scores;
     }
 
-    function renderStandings() {
+    function renderScorePanel(elementId) {
       const scores = getNetScores();
       const sorted = players.slice().sort((a, b) => scores[b] - scores[a]);
-      const container = document.getElementById('standings');
-      container.innerHTML = sorted.map(p => {
+      document.getElementById(elementId).innerHTML = sorted.map(p => {
         const s = scores[p];
         const cls = s > 0 ? 'score-pos' : s < 0 ? 'score-neg' : 'score-zero';
         const prefix = s > 0 ? '+' : '';
         return `<div style="display:flex;justify-content:space-between;padding:6px 0;" class="${cls}">
-          <span>${p}</span><span>${prefix}${s}</span>
-        </div>`;
+      <span>${esc(p)}</span><span>${prefix}${s}</span>
+    </div>`;
       }).join('');
     }
+
+    function renderStandings() { renderScorePanel('standings'); }
 
     function renderDropdowns() {
       const loserSelect = document.getElementById('loser');
       const winnerSelect = document.getElementById('winner');
-      loserSelect.innerHTML = players.map(p => `<option value="${p}">${p}</option>`).join('');
+      loserSelect.innerHTML = players.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
       updateWinnerDropdown();
       loserSelect.onchange = updateWinnerDropdown;
     }
@@ -195,7 +204,7 @@
       const prev = winnerSelect.value;
       winnerSelect.innerHTML = players
         .filter(p => p !== loser)
-        .map(p => `<option value="${p}">${p}</option>`)
+        .map(p => `<option value="${esc(p)}">${esc(p)}</option>`)
         .join('');
       if (players.includes(prev) && prev !== loser) winnerSelect.value = prev;
     }
@@ -225,7 +234,7 @@
       }
       container.innerHTML = rounds.map((r, i) =>
         `<div class="round-entry">
-          <span>#${i + 1}: ${r.loser} → ${r.winner}: ${r.points} pts</span>
+          <span>#${i + 1}: ${esc(r.loser)} → ${esc(r.winner)}: ${r.points} pts</span>
           <button class="delete-btn" onclick="deleteRound(${i})" title="Delete">✕</button>
         </div>`
       ).join('');
@@ -281,20 +290,11 @@
     }
 
     function renderSettlement() {
-      const scores = getNetScores();
-      const sorted = players.slice().sort((a, b) => scores[b] - scores[a]);
-
       // Final scores
-      document.getElementById('final-scores').innerHTML = sorted.map(p => {
-        const s = scores[p];
-        const cls = s > 0 ? 'score-pos' : s < 0 ? 'score-neg' : 'score-zero';
-        const prefix = s > 0 ? '+' : '';
-        return `<div style="display:flex;justify-content:space-between;padding:6px 0;" class="${cls}">
-          <span>${p}</span><span>${prefix}${s}</span>
-        </div>`;
-      }).join('');
+      renderScorePanel('final-scores');
 
       // Transfers
+      const scores = getNetScores();
       const transfers = calculateSettlement(scores);
       const container = document.getElementById('transfers');
       if (transfers.length === 0) {
@@ -302,9 +302,9 @@
       } else {
         container.innerHTML = transfers.map(t =>
           `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #222;">
-            <span class="score-neg">${t.from}</span>
+            <span class="score-neg">${esc(t.from)}</span>
             <span style="color:#888;">→ pays →</span>
-            <span class="score-pos">${t.to}</span>
+            <span class="score-pos">${esc(t.to)}</span>
             <span style="margin-left:auto;font-weight:bold;">: ${t.amount} pts</span>
           </div>`
         ).join('');
