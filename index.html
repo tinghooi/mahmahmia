@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0f0f1a">
   <title>MahMahMia</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -56,13 +59,21 @@
     .player-btn.selected-loser { background: #7f1d1d; border-color: #ef4444; color: #fca5a5; }
     .player-btn.selected-winner { background: #14532d; border-color: #22c55e; color: #86efac; }
     .player-btn.disabled { opacity: 0.25; pointer-events: none; }
+    .quick-amounts { display: flex; gap: 6px; margin-bottom: 10px; }
+    .quick-amt {
+      flex: 1; padding: 8px 4px; border: 1px solid #333; border-radius: 8px;
+      background: #1a1a2e; color: #4a9eff; font-size: 14px; font-weight: 700;
+      cursor: pointer; text-align: center; min-height: 38px;
+      transition: transform 0.1s, background 0.15s;
+    }
+    .quick-amt:active { transform: scale(0.95); background: #253350; }
     .toast {
       position: fixed; top: -60px; left: 50%; transform: translateX(-50%);
       background: #166534; color: #86efac; padding: 10px 20px; border-radius: 10px;
       font-size: 14px; font-weight: 600; z-index: 100; white-space: nowrap;
       transition: top 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
-    .toast.show { top: 16px; }
+    .toast.show { top: calc(16px + env(safe-area-inset-top, 0px)); }
     @keyframes pulse-panel {
       0% { border-color: #4a9eff; }
       100% { border-color: transparent; }
@@ -120,7 +131,6 @@
     <div class="label">Standings</div>
     <div class="panel standings-panel" id="standings"></div>
 
-    <div class="label">Log a Transaction</div>
     <div class="panel">
       <div style="margin-bottom:10px;">
         <div class="label">Who pays?</div>
@@ -130,10 +140,11 @@
         <div class="label">Who gets?</div>
         <div id="winner-buttons" class="player-buttons"></div>
       </div>
+      <div id="quick-amounts" class="quick-amounts"></div>
       <div style="display:flex;gap:8px;align-items:end;">
         <div style="flex:1;">
           <div class="label">Points</div>
-          <input type="number" id="points" inputmode="numeric" placeholder="0" min="1" step="1" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')addRound()">
+          <input type="number" id="points" inputmode="numeric" placeholder="" min="1" step="1" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')addRound()">
         </div>
         <button class="btn btn-primary" onclick="addRound()" style="width:auto;padding:14px 24px;margin-top:0;">+ Add</button>
       </div>
@@ -146,7 +157,7 @@
     </div>
     <div class="panel log-collapsed" id="round-log"></div>
 
-    <button class="btn btn-danger" onclick="endGame()">End Game — Settle Up</button>
+    <button class="btn-ghost" onclick="endGame()" style="display:block;width:100%;text-align:center;margin-top:16px;color:#ef4444;">End Game — Settle Up</button>
   </section>
 
   <section id="settlement">
@@ -228,6 +239,7 @@
       document.getElementById('scoring-error').textContent = '';
       renderStandings();
       renderPlayerButtons();
+      renderQuickAmounts();
       renderRoundLog();
     }
 
@@ -288,10 +300,57 @@
       document.getElementById('points').focus();
     }
 
+    function getRecentAmounts() {
+      // Get unique amounts from recent rounds, most recent first, max 4
+      const seen = new Set();
+      const amounts = [];
+      for (let i = rounds.length - 1; i >= 0 && amounts.length < 4; i--) {
+        const pts = rounds[i].points;
+        if (!seen.has(pts)) {
+          seen.add(pts);
+          amounts.push(pts);
+        }
+      }
+      return amounts.sort((a, b) => a - b);
+    }
+
+    function renderQuickAmounts() {
+      const container = document.getElementById('quick-amounts');
+      const amounts = getRecentAmounts();
+      if (amounts.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+      container.innerHTML = '<div class="label">Quick</div>' +
+        amounts.map(a =>
+          `<button class="quick-amt" onclick="quickAdd(${a})">${a}</button>`
+        ).join('');
+    }
+
+    function quickAdd(pts) {
+      if (!selectedLoser || !selectedWinner) {
+        document.getElementById('scoring-error').textContent = 'Select who pays and who gets first.';
+        return;
+      }
+      document.getElementById('scoring-error').textContent = '';
+      rounds.push({ loser: selectedLoser, winner: selectedWinner, points: pts });
+      showToast(`${selectedLoser} → ${selectedWinner}: ${pts} pts`);
+      renderStandings();
+      flashStandings();
+      renderRoundLog();
+      renderQuickAmounts();
+      const entries = document.querySelectorAll('.round-entry');
+      if (entries.length > 0) {
+        entries[0].classList.add('flash');
+        setTimeout(() => entries[0].classList.remove('flash'), 600);
+      }
+      saveState();
+    }
+
     function addRound() {
       const pointsInput = document.getElementById('points');
       if (!selectedLoser || !selectedWinner) {
-        document.getElementById('scoring-error').textContent = 'Select who lost and who won.';
+        document.getElementById('scoring-error').textContent = 'Select who pays and who gets.';
         return;
       }
       const points = parseInt(pointsInput.value, 10);
@@ -308,6 +367,7 @@
       renderStandings();
       flashStandings();
       renderRoundLog();
+      renderQuickAmounts();
       const entries = document.querySelectorAll('.round-entry');
       if (entries.length > 0) {
         entries[0].classList.add('flash');
@@ -346,6 +406,7 @@
       rounds.splice(index, 1);
       renderStandings();
       renderRoundLog();
+      renderQuickAmounts();
       saveState();
     }
 
@@ -403,11 +464,11 @@
         container.innerHTML = '<div style="color:#22c55e;text-align:center;padding:8px;">Everyone is even — nothing to settle!</div>';
       } else {
         container.innerHTML = transfers.map(t =>
-          `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #222;">
-            <span class="score-neg">${esc(t.from)}</span>
-            <span style="color:#888;">→ pays →</span>
-            <span class="score-pos">${esc(t.to)}</span>
-            <span style="margin-left:auto;font-weight:bold;font-size:16px;">${t.amount} pts</span>
+          `<div style="display:flex;align-items:center;gap:8px;padding:12px 0;border-bottom:1px solid #222;">
+            <span class="score-neg" style="font-weight:600;font-size:16px;">${esc(t.from)}</span>
+            <span style="color:#888;">→</span>
+            <span class="score-pos" style="font-weight:600;font-size:16px;">${esc(t.to)}</span>
+            <span style="margin-left:auto;font-weight:800;font-size:18px;color:#fff;">${t.amount} pts</span>
           </div>`
         ).join('');
       }
@@ -453,8 +514,16 @@
         input.placeholder = `Player ${i + 1} name`;
         input.id = `name-${i}`;
         input.autocomplete = 'off';
+        if (i === playerCount - 1) {
+          input.addEventListener('keydown', e => { if (e.key === 'Enter') startGame(); });
+        } else {
+          input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); document.getElementById(`name-${i + 1}`).focus(); }
+          });
+        }
         container.appendChild(input);
       }
+      document.getElementById('name-0').focus();
     }
 
     function startGame() {
