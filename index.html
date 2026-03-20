@@ -69,15 +69,16 @@
       transition: transform 0.1s, background 0.15s;
     }
     .quick-amt:active { transform: scale(0.95); background: #faf0e0; }
-    .success-banner {
-      background: #e8f5e9; color: #2d7d46; padding: 10px 14px; border-radius: 10px;
-      font-size: 13px; font-weight: 600; margin-bottom: 12px; text-align: center;
-      line-height: 1.4;
-      transition: opacity 0.3s ease, max-height 0.3s ease;
-      max-height: 80px; opacity: 1; overflow: hidden;
+    .snackbar {
+      position: fixed; bottom: -80px; left: 50%; transform: translateX(-50%);
+      width: calc(100% - 32px); max-width: 420px;
+      background: #2d7d46; color: #fff; padding: 12px 16px; border-radius: 12px;
+      font-size: 14px; font-weight: 600; text-align: center; line-height: 1.4;
+      z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      transition: bottom 0.3s ease;
     }
-    .success-banner.hidden { max-height: 0; opacity: 0; padding: 0 14px; margin-bottom: 0; }
-    .success-banner .banner-detail { font-size: 12px; color: #4a9a5a; opacity: 0.8; }
+    .snackbar.show { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+    .snackbar .banner-detail { font-size: 12px; opacity: 0.8; margin-top: 2px; }
     @keyframes pulse-panel {
       0% { box-shadow: 0 0 0 2px #c4873b; }
       100% { box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
@@ -119,6 +120,8 @@
   <h1>🀄 MahMahMia</h1>
   <p class="subtitle">Score Tracker</p>
 
+  <div id="success-banner" class="snackbar"></div>
+
   <section id="setup" class="active">
     <div class="label">Game Type</div>
     <div style="display:flex;gap:8px;margin-bottom:16px;">
@@ -155,7 +158,6 @@
       </div>
       <div id="scoring-error" style="color:#c44b3f;font-size:14px;min-height:20px;margin-top:4px;"></div>
     </div>
-    <div id="success-banner" class="success-banner hidden"></div>
 
     <div class="log-header" onclick="toggleLog()">
       <span class="label" style="margin-bottom:0;" id="log-label">Log (0)</span>
@@ -258,9 +260,9 @@
     function showToast(funMsg, detail) {
       const el = document.getElementById('success-banner');
       el.innerHTML = `${esc(funMsg)}<div class="banner-detail">${esc(detail)}</div>`;
-      el.classList.remove('hidden');
+      el.classList.add('show');
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => el.classList.add('hidden'), 2500);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
     }
 
     function flashStandings() {
