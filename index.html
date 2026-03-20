@@ -67,13 +67,15 @@
       transition: transform 0.1s, background 0.15s;
     }
     .quick-amt:active { transform: scale(0.95); background: #253350; }
-    .toast {
-      position: fixed; top: -60px; left: 50%; transform: translateX(-50%);
-      background: #166534; color: #86efac; padding: 10px 20px; border-radius: 10px;
-      font-size: 14px; font-weight: 600; z-index: 100; white-space: nowrap;
-      transition: top 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    .success-banner {
+      background: #166534; color: #86efac; padding: 10px 14px; border-radius: 10px;
+      font-size: 13px; font-weight: 600; margin-bottom: 12px; text-align: center;
+      line-height: 1.4;
+      transition: opacity 0.3s ease, max-height 0.3s ease;
+      max-height: 80px; opacity: 1; overflow: hidden;
     }
-    .toast.show { top: calc(16px + env(safe-area-inset-top, 0px)); }
+    .success-banner.hidden { max-height: 0; opacity: 0; padding: 0 14px; margin-bottom: 0; }
+    .success-banner .banner-detail { font-size: 12px; color: #6ee7a0; opacity: 0.8; }
     @keyframes pulse-panel {
       0% { border-color: #4a9eff; }
       100% { border-color: transparent; }
@@ -113,7 +115,6 @@
   <h1>🀄 MahMahMia</h1>
   <p class="subtitle">Score Tracker</p>
 
-  <div class="toast" id="toast"></div>
 
   <section id="setup" class="active">
     <div class="label">Game Type</div>
@@ -151,6 +152,7 @@
       </div>
       <div id="scoring-error" style="color:#ef4444;font-size:14px;min-height:20px;margin-top:4px;"></div>
     </div>
+    <div id="success-banner" class="success-banner hidden"></div>
 
     <div class="log-header" onclick="toggleLog()">
       <span class="label" style="margin-bottom:0;" id="log-label">Log (0)</span>
@@ -250,12 +252,12 @@
     }
 
     let toastTimer = null;
-    function showToast(msg) {
-      const el = document.getElementById('toast');
-      el.textContent = msg;
-      el.classList.add('show');
+    function showToast(funMsg, detail) {
+      const el = document.getElementById('success-banner');
+      el.innerHTML = `${esc(funMsg)}<div class="banner-detail">${esc(detail)}</div>`;
+      el.classList.remove('hidden');
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => el.classList.remove('show'), 1500);
+      toastTimer = setTimeout(() => el.classList.add('hidden'), 2500);
     }
 
     function flashStandings() {
@@ -418,7 +420,7 @@
       rounds.push({ loser: selectedLoser, winner: selectedWinner, points });
       pointsInput.value = '';
       pointsInput.blur();
-      showToast(funToast(selectedLoser, selectedWinner, points));
+      showToast(funToast(selectedLoser, selectedWinner, points), `${selectedLoser} → ${selectedWinner}: ${points} pts`);
       soundCoin();
       // Keep loser/winner selected for quick consecutive entries
       renderStandings();
