@@ -59,11 +59,11 @@ A mobile web app for tracking scores during mahjong (3 players) and rummy (4 pla
   - Deleting a transaction recalculates standings
   - **Empty state:** Shows "No rounds yet" hint when no transactions logged
 
-- **"Back to Setup" link** (top of screen) — returns to Setup screen. Shows confirmation dialog if any rounds have been entered: "Go back to setup? All rounds will be lost." Useful if the scorer picked the wrong game type or player count.
+- **"Back to Setup" link** (top of screen) — returns to Setup screen. Shows confirmation dialog if any rounds have been entered: "Go back to setup? All rounds will be lost." (No confirmation if round log is empty.) Useful if the scorer picked the wrong game type or player count.
 
 - **"End Game — Settle Up" button** — transitions to Settlement screen. Shows confirmation dialog: "End the game and settle up?" to prevent accidental taps.
 
-- **Auto-save:** Every state change writes to `sessionStorage` (key: `mahmahmia-state`). On page load, if saved state exists for an in-progress game, restore it automatically.
+- **Auto-save:** Every state change writes to `sessionStorage` (key: `mahmahmia-state`). On page load, if saved state exists for an in-progress game, restore it automatically and navigate directly to the Scoring screen (skipping Setup).
 
 ### Screen 3: Settlement
 
