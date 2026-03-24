@@ -170,7 +170,10 @@
   <section id="scoring">
     <button class="btn-ghost" onclick="backToSetup()">← Back to Setup</button>
 
-    <div class="label">Standings</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="label" style="margin-bottom:0;">Standings</div>
+      <button onclick="shareStandings()" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px;color:#8a7560;">Share</button>
+    </div>
     <div class="panel standings-panel" id="standings"></div>
 
     <div class="panel">
@@ -217,6 +220,10 @@
     <button class="btn btn-primary" onclick="backToScoring()">← Back to Scoring</button>
     <button class="btn btn-danger" onclick="newGame()">New Game</button>
   </section>
+
+  <div style="text-align:center;padding:24px 0 8px;font-size:11px;color:#c4a882;">
+    Built for game nights · © 2026 <a href="https://nexvancetech.com" target="_blank" rel="noopener" style="color:#c4a882;text-decoration:none;">NexvanceTech</a>
+  </div>
 
   <script>
     // --- Screen switching ---
@@ -416,6 +423,58 @@
     }
 
     function renderStandings() { renderScorePanel('standings', true); }
+
+    function shareStandings() {
+      if (rounds.length === 0) return;
+      const scores = getNetScores();
+      const sorted = players.slice().sort((a, b) => scores[b] - scores[a]);
+      const top = sorted[0], bottom = sorted[sorted.length - 1];
+      const gameLabel = gameType === 'mahjong' ? 'Mahjong' : 'Rummy';
+      const mins = Math.round((Date.now() - gameStartTime) / 60000);
+
+      let text = `🀄 MahMahMia - ${gameLabel}\n\n📊 Standings:\n`;
+      sorted.forEach((p, i) => {
+        const s = scores[p];
+        const prefix = s > 0 ? '+' : '';
+        const t = getTitle(s, p === top, p === bottom);
+        text += `${i + 1}. ${p}: ${prefix}${fmt(s)} (${t.emoji} ${t.text})\n`;
+      });
+      text += `\n${rounds.length} rounds · ${mins} min`;
+      text += `\n\n🎮 mahmahmia.com`;
+
+      if (navigator.share) {
+        navigator.share({ text }).catch(() => {
+          // Share cancelled or failed — fallback to clipboard
+          copyToClipboard(text);
+        });
+      } else {
+        copyToClipboard(text);
+      }
+    }
+
+    function copyToClipboard(text) {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast('', 'Copied to clipboard!');
+        }).catch(() => {
+          fallbackCopy(text);
+        });
+      } else {
+        fallbackCopy(text);
+      }
+    }
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast('', 'Copied to clipboard!');
+    }
 
     let selectedLoser = null;
     let selectedWinner = null;
