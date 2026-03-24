@@ -7,6 +7,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="theme-color" content="#f5f0e8">
   <title>MahMahMia</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -130,6 +131,10 @@
     </div>
     <div id="name-inputs"></div>
     <div id="setup-error" style="color:#c44b3f;font-size:14px;min-height:20px;margin-top:4px;"></div>
+    <div id="resume-banner" style="display:none;background:#fff8ee;border:1.5px solid #e8d5b8;border-radius:12px;padding:14px;margin-bottom:12px;cursor:pointer;" onclick="resumeGame()">
+      <div style="font-weight:700;color:#3d2e1e;">继续游戏 Resume</div>
+      <div id="resume-detail" style="font-size:13px;color:#8a7560;margin-top:4px;"></div>
+    </div>
     <button class="btn btn-success" onclick="startGame()">Start Game →</button>
   </section>
 
@@ -152,7 +157,7 @@
       <div style="display:flex;gap:8px;align-items:end;">
         <div style="flex:1;">
           <div class="label">Points</div>
-          <input type="number" id="points" inputmode="decimal" placeholder="" min="0.5" step="any" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')addRound()">
+          <input type="text" id="points" inputmode="decimal" placeholder="" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')addRound()">
         </div>
         <button class="btn btn-primary" onclick="addRound()" style="width:auto;padding:14px 24px;margin-top:0;">+ Add</button>
       </div>
@@ -194,6 +199,30 @@
     // --- Number formatting ---
     function fmt(n) {
       return Number.isInteger(n) ? String(n) : n.toFixed(2);
+    }
+
+    function insertOp(op) {
+      const input = document.getElementById('points');
+      const val = input.value.trim();
+      // Don't add operator if empty or already ends with one
+      if (!val || /[+\-]$/.test(val)) return;
+      input.value = val + op;
+      input.focus();
+    }
+
+    function evalExpr(str) {
+      // Safely evaluate simple +/- expressions like "10+5-3"
+      const cleaned = str.replace(/[^0-9.+\-]/g, '');
+      if (!cleaned || /^[+\-]/.test(cleaned)) return NaN;
+      const parts = cleaned.match(/[+\-]?[0-9.]+/g);
+      if (!parts) return NaN;
+      let total = 0;
+      for (const p of parts) {
+        const n = parseFloat(p);
+        if (isNaN(n)) return NaN;
+        total += n;
+      }
+      return Math.round(total * 10) / 10;
     }
 
     // --- XSS escape helper ---
@@ -280,16 +309,16 @@
 
     // --- Persistence ---
     function saveState() {
-      const state = { gameType, playerCount, players, rounds };
-      sessionStorage.setItem('mahmahmia-state', JSON.stringify(state));
+      const state = { gameType, playerCount, players, rounds, gameStartTime };
+      localStorage.setItem('mahmahmia-state', JSON.stringify(state));
     }
 
     function clearState() {
-      sessionStorage.removeItem('mahmahmia-state');
+      localStorage.removeItem('mahmahmia-state');
     }
 
     function restoreState() {
-      const saved = sessionStorage.getItem('mahmahmia-state');
+      const saved = localStorage.getItem('mahmahmia-state');
       if (!saved) return false;
       try {
         const state = JSON.parse(saved);
@@ -298,6 +327,7 @@
         playerCount = state.playerCount;
         players = state.players;
         rounds = state.rounds;
+        gameStartTime = state.gameStartTime || Date.now();
         return true;
       } catch (e) {
         clearState();
@@ -418,6 +448,7 @@
     }
 
     function quickAdd(pts) {
+      featuresUsed.add('quick_amount');
       const pointsInput = document.getElementById('points');
       pointsInput.value = pts;
       pointsInput.focus();
@@ -429,7 +460,7 @@
         document.getElementById('scoring-error').textContent = 'Select who pays and who gets.';
         return;
       }
-      const points = parseFloat(pointsInput.value);
+      const points = evalExpr(pointsInput.value);
       if (!points || points <= 0 || isNaN(points)) {
         document.getElementById('scoring-error').textContent = 'Enter a valid point amount.';
         return;
@@ -456,6 +487,7 @@
     let logOpen = false;
 
     function toggleLog() {
+      featuresUsed.add('log_view');
       logOpen = !logOpen;
       const container = document.getElementById('round-log');
       const chevron = document.getElementById('log-chevron');
@@ -480,6 +512,7 @@
     }
 
     function deleteRound(index) {
+      featuresUsed.add('undo');
       rounds.splice(index, 1);
       soundDelete();
       renderStandings();
@@ -489,13 +522,28 @@
     }
 
     // --- Navigation ---
+    function updateResumeBanner() {
+      const banner = document.getElementById('resume-banner');
+      if (rounds.length > 0 && players.length > 0) {
+        const gameLabel = gameType === 'mahjong' ? 'Mahjong' : 'Rummy';
+        document.getElementById('resume-detail').textContent =
+          `${gameLabel} · ${players.join(', ')} · ${rounds.length} transactions`;
+        banner.style.display = 'block';
+      } else {
+        banner.style.display = 'none';
+      }
+    }
+
+    function resumeGame() {
+      renderScoring();
+      showScreen('scoring');
+    }
+
     function backToSetup() {
-      if (rounds.length > 0 && !confirm('Go back to setup? All rounds will be lost.')) return;
-      rounds = [];
-      clearState();
       document.getElementById('btn-mahjong').classList.toggle('active', gameType === 'mahjong');
       document.getElementById('btn-rummy').classList.toggle('active', gameType === 'rummy');
       renderNameInputs();
+      updateResumeBanner();
       showScreen('setup');
     }
 
@@ -504,6 +552,26 @@
       renderSettlement();
       showScreen('settlement');
       soundSettle();
+      if (sb) {
+        const scores = Object.values(getNetScores());
+        sb.from('game_sessions').insert({
+          client_id: getClientId(),
+          game_type: gameType,
+          player_count: players.length,
+          transaction_count: rounds.length,
+          duration_sec: Math.round((Date.now() - gameStartTime) / 1000),
+          device: detectDevice(),
+          locale: navigator.language,
+          screen_width: window.innerWidth,
+          referrer: document.referrer || 'direct',
+          app_version: APP_VERSION,
+          tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          hour_local: new Date().getHours(),
+          max_score_spread: Math.round((Math.max(...scores) - Math.min(...scores)) * 100) / 100,
+          features_used: [...featuresUsed].join(',') || null,
+          utm_source: new URLSearchParams(window.location.search).get('utm_source') || null
+        });
+      }
     }
 
     function calculateSettlement(netScores) {
@@ -587,11 +655,35 @@
       showScreen('setup');
     }
 
+    // --- Analytics ---
+    const SUPABASE_URL = 'https://rayamhtdgqgrtsjkkhrs.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJheWFtaHRkZ3FncnRzamtraHJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNTkyMDgsImV4cCI6MjA4OTczNTIwOH0.Sq_YAu5Vgj57X4bDZiLwnTPey2jNDitKUKkybN7bA90';
+    const APP_VERSION = '1.0';
+    const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+    function getClientId() {
+      let id = localStorage.getItem('mamamia_cid');
+      if (!id) {
+        id = crypto.randomUUID();
+        localStorage.setItem('mamamia_cid', id);
+      }
+      return id;
+    }
+
+    function detectDevice() {
+      if (navigator.userAgentData?.mobile !== undefined) {
+        return navigator.userAgentData.mobile ? 'mobile' : 'desktop';
+      }
+      return window.innerWidth < 768 ? 'mobile' : 'desktop';
+    }
+
     // --- State ---
     let gameType = 'mahjong';
     let playerCount = 3;
     let players = [];
     let rounds = [];
+    let gameStartTime = Date.now();
+    let featuresUsed = new Set();
 
     // --- Setup ---
     function setGameType(type) {
@@ -639,20 +731,27 @@
         document.getElementById('setup-error').textContent = 'Names must be unique.';
         return;
       }
+      // Warn if there's an existing game in progress
+      if (rounds.length > 0 && !confirm('有游戏还在进行中，确定要开新游戏吗？')) return;
       document.getElementById('setup-error').textContent = '';
       players = names;
       rounds = [];
+      gameStartTime = Date.now();
+      featuresUsed = new Set();
+      clearState();
       renderScoring();
       showScreen('scoring');
       saveState();
     }
 
     // Initialize
-    if (restoreState() && players.length > 0) {
+    if (restoreState() && players.length > 0 && rounds.length > 0) {
       renderScoring();
       showScreen('scoring');
     } else {
+      restoreState();
       renderNameInputs();
+      updateResumeBanner();
     }
   </script>
 </body>
