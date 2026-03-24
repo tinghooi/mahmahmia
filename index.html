@@ -442,7 +442,7 @@
         const t = getTitle(s, p === top, p === bottom);
         text += `${i + 1}. ${p}: ${prefix}${fmt(s)} (${t.emoji} ${t.text})\n`;
       });
-      text += `\n${rounds.length} rounds · ${mins} min`;
+      text += `\n${rounds.length} transactions · ${mins} min`;
       text += `\n\n🎮 mahmahmia.com`;
 
       if (navigator.share) {
@@ -661,7 +661,7 @@
           max_score_spread: Math.round((Math.max(...scores) - Math.min(...scores)) * 100) / 100,
           features_used: [...featuresUsed].join(',') || null,
           utm_source: new URLSearchParams(window.location.search).get('utm_source') || null
-        });
+        }).then(({ error }) => { if (error) console.error('Supabase insert error:', error); });
       }
     }
 
