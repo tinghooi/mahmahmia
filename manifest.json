@@ -1,0 +1,26 @@
+{
+  "name": "MahMahMia",
+  "short_name": "MahMahMia",
+  "description": "Score tracker for Mahjong & Rummy. Track points, settle up at the end.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f0e8",
+  "theme_color": "#c4873b",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
