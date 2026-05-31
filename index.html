@@ -331,6 +331,72 @@
       .splash-word { font-size: 84px; }
       .splash-sub { font-size: 28px; }
     }
+    /* --- Voice listening (mahjong only) --- */
+    .voice-row {
+      display: none; align-items: center; gap: 10px;
+      margin: 4px 0 12px; flex-wrap: wrap;
+    }
+    .voice-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: var(--panel-2); color: var(--muted);
+      border: 1.5px solid var(--border-warm); border-radius: 999px;
+      padding: 9px 16px; font-size: 14px; font-weight: 700; cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.1s, background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .voice-btn:active { transform: scale(0.95); }
+    .voice-btn.on {
+      background: var(--danger); color: #fff; border-color: var(--danger);
+    }
+    .voice-btn.on .voice-dot {
+      width: 9px; height: 9px; border-radius: 50%; background: #fff;
+      animation: voice-pulse 1s ease-in-out infinite;
+    }
+    .voice-dot { width: 0; height: 0; }
+    @keyframes voice-pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(0.7); }
+    }
+    .voice-status { font-size: 12px; color: var(--muted); }
+    .voice-status.err { color: var(--danger); }
+    .voice-hint { font-size: 11px; color: var(--faint); width: 100%; }
+
+    /* Full-screen call overlay: big character slams in with shockwave rings. */
+    .call-overlay {
+      position: fixed; inset: 0; z-index: 355; pointer-events: none;
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .call-stack {
+      position: relative; display: flex; flex-direction: column; align-items: center;
+      will-change: transform, opacity; animation: call-slam 1.1s cubic-bezier(0.2, 0.75, 0.3, 1) forwards;
+    }
+    @keyframes call-slam {
+      0%   { transform: scale(2.8) rotate(-16deg); opacity: 0; filter: blur(8px); }
+      16%  { transform: scale(0.82) rotate(4deg); opacity: 1; filter: blur(0); }
+      28%  { transform: scale(1.06) rotate(-1deg); }
+      40%  { transform: scale(1) rotate(0deg); }
+      74%  { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1.3); opacity: 0; }
+    }
+    .call-char {
+      font-size: 38vmin; font-weight: 900; line-height: 0.9; color: #fff;
+      text-shadow: 0 0 8px var(--c), 0 0 40px var(--c), 0 8px 0 rgba(0,0,0,0.18);
+    }
+    .call-py {
+      margin-top: 8px; font-size: 5.5vmin; font-weight: 900; letter-spacing: 3px;
+      color: var(--c); text-shadow: 0 1px 6px rgba(0,0,0,0.45); text-transform: uppercase;
+    }
+    .call-ring {
+      position: absolute; top: 50%; left: 50%; width: 30vmin; height: 30vmin;
+      margin: -15vmin 0 0 -15vmin; border-radius: 50%;
+      border: 0.8vmin solid var(--c); opacity: 0; will-change: transform, opacity;
+      animation: call-ring 0.85s ease-out forwards;
+    }
+    .call-ring.r2 { animation-delay: 0.12s; }
+    @keyframes call-ring {
+      0%   { transform: scale(0.2); opacity: 0.85; }
+      100% { transform: scale(2.6); opacity: 0; }
+    }
     @media (prefers-reduced-motion: reduce) {
       * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
@@ -419,6 +485,14 @@
   <section id="scoring">
     <button class="btn-ghost" onclick="backToSetup()">← Back to Setup</button>
 
+    <div id="voice-row" class="voice-row">
+      <button id="voice-toggle" class="voice-btn" onclick="toggleVoice()" aria-label="Toggle voice listening">
+        <span class="voice-dot"></span><span id="voice-label">🎙️ 语音 Voice</span>
+      </button>
+      <span id="voice-status" class="voice-status"></span>
+      <span class="voice-hint">喊「碰・槓・吃・胡・自摸」触发动画 · Shout your calls for animations</span>
+    </div>
+
     <div class="scoring-grid">
     <div class="sg-standings">
     <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -498,6 +572,9 @@
     function showScreen(id) {
       document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
       document.getElementById(id).classList.add('active');
+      // Voice listening only makes sense on the active scoring screen; stop it
+      // (and release the mic) whenever we navigate elsewhere.
+      if (id !== 'scoring' && typeof stopVoice === 'function') stopVoice();
     }
 
     // --- Number formatting ---
@@ -692,6 +769,156 @@
       return points >= avg * 2.5 && points >= Math.max(...prev);
     }
 
+    // --- Voice listening (mahjong only) ---
+    // Listens (via the Web Speech API) for the calls players shout during a
+    // mahjong game and fires a quick full-screen animation + sound for each.
+    // Off by default; opt-in per session via the mic toggle on the scoring
+    // screen (a deliberate tap is also what primes audio/mic on iOS).
+    const CALLS = {
+      pong: { zh: '碰',   py: 'Pòng',  color: '#ff7a33' },
+      kong: { zh: '槓',   py: 'Gàng',  color: '#e0533f' },
+      chi:  { zh: '吃',   py: 'Chī',   color: '#2d9d6f' },
+      hu:   { zh: '胡了', py: 'Hú!',   color: '#ffc23d' },
+      zimo: { zh: '自摸', py: 'Zìmō',  color: '#9b6dde' },
+    };
+    let recognition = null, voiceEnabled = false;
+    const lastFired = {};
+    const CALL_COOLDOWN = 1400;   // ms — ignore the same call again within this window
+
+    function voiceSupported() {
+      return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+    }
+
+    function callSound(type) {
+      try {
+        if (type === 'pong') { playTone(190, 0.12, 'square', 0); playTone(130, 0.18, 'triangle', 0.05); }
+        else if (type === 'kong') { playTone(110, 0.3, 'triangle', 0); playTone(220, 0.14, 'square', 0.08); playTone(330, 0.16, 'square', 0.2); }
+        else if (type === 'chi') { playTone(660, 0.1, 'square', 0); playTone(880, 0.12, 'square', 0.08); }
+        else if (type === 'hu') { soundBigWin(); }
+        else if (type === 'zimo') { playTone(784, 0.1, 'sine', 0); playTone(1047, 0.1, 'sine', 0.1); playTone(1319, 0.18, 'sine', 0.2); playTone(1760, 0.22, 'sine', 0.32); }
+      } catch (e) {}
+    }
+
+    let callTimer = null;
+    function showCall(type) {
+      const cfg = CALLS[type];
+      if (!cfg) return;
+      callSound(type);
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      document.querySelectorAll('.call-overlay').forEach(el => el.remove());
+      const o = document.createElement('div');
+      o.className = 'call-overlay';
+      o.style.setProperty('--c', cfg.color);
+      o.innerHTML =
+        '<div class="call-ring"></div>' +
+        '<div class="call-ring r2"></div>' +
+        '<div class="call-stack">' +
+          `<div class="call-char">${esc(cfg.zh)}</div>` +
+          `<div class="call-py">${esc(cfg.py)}</div>` +
+        '</div>';
+      document.body.appendChild(o);
+      screenShake();
+      if (type === 'hu' || type === 'zimo') celebrate();   // a win deserves the full shower
+      clearTimeout(callTimer);
+      callTimer = setTimeout(() => o.remove(), 1150);
+    }
+
+    // Map a recognised phrase to a call. Order matters: the more specific /
+    // multi-character calls are tested first, and common homophones (and the
+    // pinyin/English a non-Chinese recogniser might return) are included.
+    function matchCall(text) {
+      const t = text.toLowerCase();
+      if (/自摸|\bzi\s?mo\b|\bzimo\b/.test(t)) return 'zimo';
+      if (/胡了|胡牌|和牌|[胡糊湖唬户]|\b(hu|hoo|woo)\b|mahjong/.test(t)) return 'hu';
+      if (/[槓杠摃刚钢缸冈]|\b(gang|gong|kong)\b/.test(t)) return 'kong';
+      if (/[碰掽蓬捧]|\b(peng|pong|pung)\b/.test(t)) return 'pong';
+      if (/[吃饬]|\b(chi|chee|chr)\b/.test(t)) return 'chi';
+      return null;
+    }
+
+    function fireCall(type) {
+      const now = Date.now();
+      if (lastFired[type] && now - lastFired[type] < CALL_COOLDOWN) return;
+      lastFired[type] = now;
+      featuresUsed.add('voice');
+      showCall(type);
+    }
+
+    function setVoiceStatus(msg, isErr) {
+      const el = document.getElementById('voice-status');
+      if (!el) return;
+      el.textContent = msg || '';
+      el.classList.toggle('err', !!isErr);
+    }
+
+    function createRecognition() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const r = new SR();
+      r.lang = 'zh-CN';
+      r.continuous = true;
+      r.interimResults = true;
+      r.maxAlternatives = 3;
+      r.onresult = (e) => {
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const res = e.results[i];
+          for (let a = 0; a < res.length; a++) {
+            const type = matchCall(res[a].transcript || '');
+            if (type) { fireCall(type); break; }
+          }
+        }
+      };
+      r.onerror = (e) => {
+        if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+          voiceEnabled = false;
+          setVoiceStatus('麦克风被拦截 Mic blocked — allow it in browser settings', true);
+          updateVoiceUI();
+        }
+        // 'no-speech' / 'aborted' / 'network' just end the session; onend restarts.
+      };
+      r.onend = () => {
+        // Recognisers stop themselves periodically (and after silence); keep
+        // listening as long as the user left it on.
+        if (voiceEnabled) {
+          try { r.start(); } catch (e) {}
+        }
+      };
+      return r;
+    }
+
+    function startVoice() {
+      if (!voiceSupported()) return;
+      try { getAudio(); } catch (e) {}   // prime audio within the tap gesture (iOS)
+      if (!recognition) recognition = createRecognition();
+      voiceEnabled = true;
+      try { recognition.start(); } catch (e) {}
+      setVoiceStatus('聆听中 Listening…');
+      featuresUsed.add('voice');
+      updateVoiceUI();
+    }
+
+    function stopVoice() {
+      voiceEnabled = false;
+      if (recognition) { try { recognition.stop(); } catch (e) {} }
+      setVoiceStatus('');
+      updateVoiceUI();
+    }
+
+    function toggleVoice() {
+      if (voiceEnabled) stopVoice();
+      else startVoice();
+    }
+
+    function updateVoiceUI() {
+      const row = document.getElementById('voice-row');
+      if (!row) return;
+      const show = gameType === 'mahjong' && voiceSupported();
+      row.style.display = show ? 'flex' : 'none';
+      const btn = document.getElementById('voice-toggle');
+      const label = document.getElementById('voice-label');
+      if (btn) btn.classList.toggle('on', voiceEnabled);
+      if (label) label.textContent = voiceEnabled ? '🎤 语音 ON' : '🎙️ 语音 Voice';
+    }
+
     function keyFeedback() {
       // Confirm each keypad press so taps don't get silently missed.
       // iOS Safari has no Vibration API, so a soft tick is the fallback.
@@ -792,6 +1019,7 @@
       renderPlayerButtons();
       renderQuickAmounts();
       renderRoundLog();
+      updateVoiceUI();
     }
 
     function getNetScores() {

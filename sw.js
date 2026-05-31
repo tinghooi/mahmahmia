@@ -1,6 +1,6 @@
 // MahMahMia service worker — makes the app shell work offline.
 // Bump CACHE when the cached assets below change to invalidate old caches.
-const CACHE = 'mahmahmia-v2';
+const CACHE = 'mahmahmia-v3';
 const CORE = [
   '/',
   '/index.html',
