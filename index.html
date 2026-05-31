@@ -104,7 +104,10 @@
       caret-color: #c4873b;
     }
     .keypad {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px;
+    }
+    .keypad-actions {
+      display: grid; grid-template-columns: 1fr 2fr; gap: 8px; margin-top: 8px;
     }
     .kp-key {
       padding: 14px 0; border: 1px solid #e0d5c5; border-radius: 10px;
@@ -114,7 +117,6 @@
       transition: transform 0.08s, background 0.12s;
     }
     .kp-key:active { transform: scale(0.95); background: #f3ece1; }
-    .kp-op { color: #c4873b; }
     .kp-back { color: #8a7560; }
     .kp-clear { color: #c44b3f; }
     .kp-add { background: #2d7d46; color: #fff; border-color: #2d7d46; }
@@ -212,17 +214,17 @@
         <button type="button" class="kp-key" onclick="kp('7')">7</button>
         <button type="button" class="kp-key" onclick="kp('8')">8</button>
         <button type="button" class="kp-key" onclick="kp('9')">9</button>
-        <button type="button" class="kp-key kp-back" onclick="kp('back')">⌫</button>
         <button type="button" class="kp-key" onclick="kp('4')">4</button>
         <button type="button" class="kp-key" onclick="kp('5')">5</button>
         <button type="button" class="kp-key" onclick="kp('6')">6</button>
-        <button type="button" class="kp-key kp-op" onclick="kp('+')">+</button>
         <button type="button" class="kp-key" onclick="kp('1')">1</button>
         <button type="button" class="kp-key" onclick="kp('2')">2</button>
         <button type="button" class="kp-key" onclick="kp('3')">3</button>
-        <button type="button" class="kp-key kp-op" onclick="kp('-')">−</button>
         <button type="button" class="kp-key" onclick="kp('.')">.</button>
         <button type="button" class="kp-key" onclick="kp('0')">0</button>
+        <button type="button" class="kp-key kp-back" onclick="kp('back')">⌫</button>
+      </div>
+      <div class="keypad-actions">
         <button type="button" class="kp-key kp-clear" onclick="kp('clear')">C</button>
         <button type="button" class="kp-key kp-add" onclick="addRound()">Add</button>
       </div>
@@ -270,15 +272,6 @@
       return Number.isInteger(n) ? String(n) : n.toFixed(2);
     }
 
-    function insertOp(op) {
-      const input = document.getElementById('points');
-      const val = input.value.trim();
-      // Don't add operator if empty or already ends with one
-      if (!val || /[+\-]$/.test(val)) return;
-      input.value = val + op;
-      input.focus();
-    }
-
     // --- In-app numeric keypad (avoids the native keyboard pushing the screen) ---
     function kp(key) {
       const input = document.getElementById('points');
@@ -286,15 +279,10 @@
         input.value = input.value.slice(0, -1);
       } else if (key === 'clear') {
         input.value = '';
-      } else if (key === '+' || key === '-') {
-        insertOp(key);
-        return;
       } else if (key === '.') {
-        // Only one decimal point allowed within the current number segment
-        const segment = input.value.split(/[+\-]/).pop();
-        if (segment.includes('.')) return;
-        // Lead a bare/operator-trailing decimal with a zero ("." -> "0.")
-        if (input.value === '' || /[+\-]$/.test(input.value)) input.value += '0';
+        // Only one decimal point allowed, and lead a bare "." with a zero
+        if (input.value.includes('.')) return;
+        if (input.value === '') input.value = '0';
         input.value += '.';
       } else {
         input.value += key;
