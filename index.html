@@ -264,24 +264,24 @@
     .splash {
       position: fixed; inset: 0; z-index: 350; pointer-events: none;
       display: flex; align-items: center; justify-content: center;
-      padding: 16px; animation: splash-bg 1.8s ease-out forwards;
+      padding: 16px; animation: splash-bg 0.9s ease-out forwards;
     }
     @keyframes splash-bg {
       0%   { background: rgba(0,0,0,0); }
-      12%  { background: rgba(0,0,0,0.5); }
-      78%  { background: rgba(0,0,0,0.5); }
+      18%  { background: rgba(0,0,0,0.45); }
+      58%  { background: rgba(0,0,0,0.45); }
       100% { background: rgba(0,0,0,0); }
     }
     .splash-card {
       text-align: center; will-change: transform, opacity;
-      animation: splash-pop 1.8s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+      animation: splash-pop 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
     }
     @keyframes splash-pop {
       0%   { transform: scale(0.3) rotate(-8deg); opacity: 0; }
-      12%  { transform: scale(1.15) rotate(2deg); opacity: 1; }
-      22%  { transform: scale(1) rotate(0deg); opacity: 1; }
-      75%  { transform: scale(1); opacity: 1; }
-      100% { transform: scale(1.45); opacity: 0; }
+      20%  { transform: scale(1.15) rotate(2deg); opacity: 1; }
+      34%  { transform: scale(1) rotate(0deg); opacity: 1; }
+      62%  { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1.4); opacity: 0; }
     }
     .splash-emoji { font-size: 64px; line-height: 1; }
     .splash-word {
@@ -563,6 +563,16 @@
     }
 
     // --- Big-win celebration ---
+    // Clear any in-progress celebration immediately so rapid score entry is
+    // never held up by a lingering splash/confetti from the previous round.
+    let splashTimer = null;
+    function clearCelebration() {
+      document.querySelectorAll('.splash').forEach(el => el.remove());
+      const layer = document.getElementById('confetti');
+      if (layer) layer.innerHTML = '';
+      if (splashTimer) { clearTimeout(splashTimer); splashTimer = null; }
+    }
+
     const bigWinWords = ['赢麻了!', '大杀四方!', '血赚!', '横扫千军!', '一夜暴富!', '财源滚滚!'];
     function bigWinSplash(winner, points) {
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -576,7 +586,7 @@
           `<div class="splash-sub">${esc(winner)} +${fmt(points)}</div>` +
         '</div>';
       document.body.appendChild(el);
-      setTimeout(() => el.remove(), 1800);
+      splashTimer = setTimeout(() => el.remove(), 950);
     }
 
     function celebrate() {
@@ -588,7 +598,7 @@
         document.body.appendChild(layer);
       }
       const emojis = ['🪙', '💰', '🎉', '✨', '💵', '🀄'];
-      for (let i = 0; i < 28; i++) {
+      for (let i = 0; i < 24; i++) {
         const piece = document.createElement('div');
         piece.className = 'confetti-piece';
         piece.textContent = emojis[Math.floor(Math.random() * emojis.length)];
@@ -596,11 +606,11 @@
         piece.style.fontSize = (20 + Math.random() * 16) + 'px';
         piece.style.setProperty('--dx', (Math.random() * 30 - 15) + 'vw');
         piece.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
-        const dur = 1.4 + Math.random() * 1.0;
+        const dur = 0.9 + Math.random() * 0.5;
         piece.style.setProperty('--dur', dur + 's');
-        piece.style.animationDelay = (Math.random() * 0.25) + 's';
+        piece.style.animationDelay = (Math.random() * 0.15) + 's';
         layer.appendChild(piece);
-        setTimeout(() => piece.remove(), (dur + 0.4) * 1000);
+        setTimeout(() => piece.remove(), (dur + 0.3) * 1000);
       }
     }
 
@@ -903,6 +913,7 @@
         return;
       }
       document.getElementById('scoring-error').textContent = '';
+      clearCelebration();   // never let a prior celebration linger over a new entry
       const bigWin = isBigWin(points);
       const bigWinner = selectedWinner;
       rounds.push({ loser: selectedLoser, winner: selectedWinner, points });
