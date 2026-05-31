@@ -902,7 +902,13 @@
       r.continuous = true;
       r.interimResults = true;
       r.maxAlternatives = 3;
+      r.onstart = () => {
+        // A fresh session is live — clear the stale "Heard: …" so it's visibly
+        // listening again rather than frozen on the last thing it caught.
+        if (voiceEnabled) setVoiceStatus('聆听中 Listening…');
+      };
       r.onresult = (e) => {
+        restartFails = 0;            // getting results => healthy; never back off
         let heard = '';
         for (let i = e.resultIndex; i < e.results.length; i++) {
           const res = e.results[i];
@@ -922,23 +928,21 @@
         // 'no-speech' / 'aborted' / 'network' just end the session; onend restarts.
       };
       r.onend = () => {
-        // Recognisers stop themselves periodically (and after silence); keep
-        // listening as long as the user left it on. Back off if it's ending
-        // almost immediately (e.g. a persistent network error) so we never spin
-        // in a tight start→error→start loop, and give up after a few rapid fails.
+        // Chrome ends the session shortly after each result even in continuous
+        // mode, so we must restart to keep listening. Restart on a timer rather
+        // than synchronously here — calling start() inside onend is silently
+        // rejected by Chrome ("already started"), which is what made it freeze
+        // after the first call. Back off only if sessions die almost instantly
+        // (e.g. a persistent network error), and give up after many rapid fails.
         if (!voiceEnabled) return;
-        if (Date.now() - lastStart < 500) {
-          if (++restartFails > 6) {
-            voiceEnabled = false;
-            setVoiceStatus('语音已暂停 Paused — tap to retry', true);
-            updateVoiceUI();
-            return;
-          }
-          setTimeout(restartVoice, Math.min(2000, 300 * restartFails));
-        } else {
-          restartFails = 0;
-          restartVoice();
+        if (Date.now() - lastStart < 800) restartFails++; else restartFails = 0;
+        if (restartFails > 8) {
+          voiceEnabled = false;
+          setVoiceStatus('语音已暂停 Paused — tap to retry', true);
+          updateVoiceUI();
+          return;
         }
+        setTimeout(restartVoice, restartFails > 0 ? Math.min(1500, 250 * restartFails) : 250);
       };
       return r;
     }
