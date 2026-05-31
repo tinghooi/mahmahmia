@@ -99,6 +99,26 @@
       transition: transform 0.1s, background 0.15s;
     }
     .quick-amt:active { transform: scale(0.95); background: #faf0e0; }
+    .points-display {
+      font-size: 22px; font-weight: 700; text-align: center; letter-spacing: 1px;
+      caret-color: #c4873b;
+    }
+    .keypad {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px;
+    }
+    .kp-key {
+      padding: 14px 0; border: 1px solid #e0d5c5; border-radius: 10px;
+      background: #fff; color: #3d2e1e; font-size: 20px; font-weight: 600;
+      cursor: pointer; min-height: 52px; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.08s, background 0.12s;
+    }
+    .kp-key:active { transform: scale(0.95); background: #f3ece1; }
+    .kp-op { color: #c4873b; }
+    .kp-back { color: #8a7560; }
+    .kp-clear { color: #c44b3f; }
+    .kp-add { background: #2d7d46; color: #fff; border-color: #2d7d46; }
+    .kp-add:active { background: #256b3b; }
     .snackbar {
       position: fixed; bottom: -80px; left: 50%; transform: translateX(-50%);
       width: calc(100% - 32px); max-width: 420px;
@@ -186,12 +206,25 @@
         <div id="winner-buttons" class="player-buttons"></div>
       </div>
       <div id="quick-amounts" class="quick-amounts"></div>
-      <div style="display:flex;gap:8px;align-items:end;">
-        <div style="flex:1;">
-          <div class="label">Points</div>
-          <input type="text" id="points" inputmode="decimal" placeholder="" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')addRound()">
-        </div>
-        <button class="btn btn-primary" onclick="addRound()" style="width:auto;padding:14px 24px;margin-top:0;">+ Add</button>
+      <div class="label">Points</div>
+      <input type="text" id="points" class="points-display" inputmode="none" placeholder="0" style="margin-bottom:0;" onkeydown="if(event.key==='Enter')addRound()">
+      <div class="keypad" id="keypad">
+        <button type="button" class="kp-key" onclick="kp('7')">7</button>
+        <button type="button" class="kp-key" onclick="kp('8')">8</button>
+        <button type="button" class="kp-key" onclick="kp('9')">9</button>
+        <button type="button" class="kp-key kp-back" onclick="kp('back')">⌫</button>
+        <button type="button" class="kp-key" onclick="kp('4')">4</button>
+        <button type="button" class="kp-key" onclick="kp('5')">5</button>
+        <button type="button" class="kp-key" onclick="kp('6')">6</button>
+        <button type="button" class="kp-key kp-op" onclick="kp('+')">+</button>
+        <button type="button" class="kp-key" onclick="kp('1')">1</button>
+        <button type="button" class="kp-key" onclick="kp('2')">2</button>
+        <button type="button" class="kp-key" onclick="kp('3')">3</button>
+        <button type="button" class="kp-key kp-op" onclick="kp('-')">−</button>
+        <button type="button" class="kp-key" onclick="kp('.')">.</button>
+        <button type="button" class="kp-key" onclick="kp('0')">0</button>
+        <button type="button" class="kp-key kp-clear" onclick="kp('clear')">C</button>
+        <button type="button" class="kp-key kp-add" onclick="addRound()">Add</button>
       </div>
       <div id="scoring-error" style="color:#c44b3f;font-size:14px;min-height:20px;margin-top:4px;"></div>
     </div>
@@ -244,6 +277,29 @@
       if (!val || /[+\-]$/.test(val)) return;
       input.value = val + op;
       input.focus();
+    }
+
+    // --- In-app numeric keypad (avoids the native keyboard pushing the screen) ---
+    function kp(key) {
+      const input = document.getElementById('points');
+      if (key === 'back') {
+        input.value = input.value.slice(0, -1);
+      } else if (key === 'clear') {
+        input.value = '';
+      } else if (key === '+' || key === '-') {
+        insertOp(key);
+        return;
+      } else if (key === '.') {
+        // Only one decimal point allowed within the current number segment
+        const segment = input.value.split(/[+\-]/).pop();
+        if (segment.includes('.')) return;
+        // Lead a bare/operator-trailing decimal with a zero ("." -> "0.")
+        if (input.value === '' || /[+\-]$/.test(input.value)) input.value += '0';
+        input.value += '.';
+      } else {
+        input.value += key;
+      }
+      document.getElementById('scoring-error').textContent = '';
     }
 
     function evalExpr(str) {
