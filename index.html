@@ -244,7 +244,7 @@
     }
     .round-entry.flash { animation: flash-in 0.6s ease-out; }
     /* Big-win celebration: a short coin/confetti shower. */
-    #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 300; overflow: hidden; }
+    #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 360; overflow: hidden; }
     .confetti-piece {
       position: absolute; top: 0; will-change: transform, opacity;
       animation: confetti-fall var(--dur, 2s) cubic-bezier(0.3, 0.4, 0.6, 1) forwards;
@@ -259,6 +259,43 @@
       0%   { transform: scale(1); box-shadow: 0 0 0 0 var(--primary); }
       35%  { transform: scale(1.04); box-shadow: 0 0 0 3px var(--primary); }
       100% { transform: scale(1); box-shadow: 0 1px 3px var(--shadow); }
+    }
+    /* Full-screen big-win splash: dim backdrop + a word that pops out. */
+    .splash {
+      position: fixed; inset: 0; z-index: 350; pointer-events: none;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px; animation: splash-bg 1.8s ease-out forwards;
+    }
+    @keyframes splash-bg {
+      0%   { background: rgba(0,0,0,0); }
+      12%  { background: rgba(0,0,0,0.5); }
+      78%  { background: rgba(0,0,0,0.5); }
+      100% { background: rgba(0,0,0,0); }
+    }
+    .splash-card {
+      text-align: center; will-change: transform, opacity;
+      animation: splash-pop 1.8s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+    }
+    @keyframes splash-pop {
+      0%   { transform: scale(0.3) rotate(-8deg); opacity: 0; }
+      12%  { transform: scale(1.15) rotate(2deg); opacity: 1; }
+      22%  { transform: scale(1) rotate(0deg); opacity: 1; }
+      75%  { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1.45); opacity: 0; }
+    }
+    .splash-emoji { font-size: 64px; line-height: 1; }
+    .splash-word {
+      font-size: 46px; font-weight: 900; margin-top: 6px; letter-spacing: 1px;
+      color: #ffd86b; text-shadow: 0 2px 0 #b3793f, 0 0 26px rgba(255,200,80,0.6);
+    }
+    .splash-sub {
+      font-size: 20px; font-weight: 700; color: #fff; margin-top: 10px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    }
+    @media (min-width: 700px) {
+      .splash-emoji { font-size: 92px; }
+      .splash-word { font-size: 72px; }
+      .splash-sub { font-size: 26px; }
     }
     @media (prefers-reduced-motion: reduce) {
       * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -526,6 +563,22 @@
     }
 
     // --- Big-win celebration ---
+    const bigWinWords = ['赢麻了!', '大杀四方!', '血赚!', '横扫千军!', '一夜暴富!', '财源滚滚!'];
+    function bigWinSplash(winner, points) {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const word = bigWinWords[Math.floor(Math.random() * bigWinWords.length)];
+      const el = document.createElement('div');
+      el.className = 'splash';
+      el.innerHTML =
+        '<div class="splash-card">' +
+          '<div class="splash-emoji">🤑</div>' +
+          `<div class="splash-word">${esc(word)}</div>` +
+          `<div class="splash-sub">${esc(winner)} +${fmt(points)}</div>` +
+        '</div>';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1800);
+    }
+
     function celebrate() {
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       let layer = document.getElementById('confetti');
@@ -856,7 +909,7 @@
       pointsInput.value = '';
       pointsInput.blur();
       showToast(funToast(selectedLoser, selectedWinner, points), `${selectedLoser} → ${selectedWinner}: ${fmt(points)} pts`);
-      if (bigWin) { soundBigWin(); celebrate(); } else { soundCoin(); }
+      if (bigWin) { soundBigWin(); celebrate(); bigWinSplash(bigWinner, points); } else { soundCoin(); }
       // Keep loser/winner selected for quick consecutive entries
       renderStandings();
       if (bigWin) {
