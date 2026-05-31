@@ -41,6 +41,10 @@
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    /* Kill the double-tap-to-zoom gesture (and its 300ms tap delay) on every
+       control, so rapid taps on the keypad / call buttons register cleanly
+       and never accidentally zoom the page. Pinch-to-zoom still works. */
+    button, input, select, textarea, a, [onclick] { touch-action: manipulation; }
     :root {
       --bg: #f5f0e8;
       --ink: #3d2e1e;
@@ -490,7 +494,7 @@
         <span class="voice-dot"></span><span id="voice-label">🎙️ 语音 Voice</span>
       </button>
       <span id="voice-status" class="voice-status"></span>
-      <span class="voice-hint">喊「碰・槓・吃・胡・自摸」触发动画 · Shout your calls for animations</span>
+      <span class="voice-hint">开启后喊「碰・槓・吃・胡・自摸」自动触发动画 · Turn on, then just shout your call</span>
     </div>
 
     <div class="scoring-grid">
@@ -782,8 +786,20 @@
       zimo: { zh: '自摸', py: 'Zìmō',  color: '#9b6dde' },
     };
     let recognition = null, voiceEnabled = false;
-    const lastFired = {};
-    const CALL_COOLDOWN = 1400;   // ms — ignore the same call again within this window
+    // Per-utterance dedup: each recognition "segment" (e.results[i]) is one
+    // spoken phrase whose transcript grows as interim updates arrive. We track
+    // how many times each call has already fired for a segment, so a single
+    // shout fires once (interim + final never double up) while a rapid
+    // "碰碰碰" in one breath fires once per 碰 — no slow global cooldown holding
+    // repeats back. Reset whenever a new recognition session starts.
+    let firedCounts = {};
+    const CALL_RX = {
+      zimo: /自摸|自摩|字摸/g,
+      hu:   /胡了|胡牌|和牌|[胡糊湖壶蝴狐弧葫鹕唬]/g,
+      kong: /[槓杠摃刚钢港缸冈扛纲岗]/g,
+      pong: /[碰掽蓬捧盆彭棚朋鹏]/g,
+      chi:  /[吃持池迟尺赤痴哧嗤饬]/g,
+    };
 
     function voiceSupported() {
       return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -823,25 +839,53 @@
       callTimer = setTimeout(() => o.remove(), 1150);
     }
 
-    // Map a recognised phrase to a call. Order matters: the more specific /
-    // multi-character calls are tested first, and common homophones (and the
-    // pinyin/English a non-Chinese recogniser might return) are included.
+    // Map a recognised phrase to a call. The recogniser often mis-hears a sharp
+    // one-syllable shout as a same-sounding character, so for a SHORT utterance
+    // (how calls are actually shouted) we accept the common homophones and the
+    // pinyin/English a non-Chinese recogniser might emit. For a longer sentence
+    // we only accept the canonical character, so ordinary chatter (迟到, 湖边…)
+    // doesn't set off the animation.
     function matchCall(text) {
-      const t = text.toLowerCase();
-      if (/自摸|\bzi\s?mo\b|\bzimo\b/.test(t)) return 'zimo';
-      if (/胡了|胡牌|和牌|[胡糊湖唬户]|\b(hu|hoo|woo)\b|mahjong/.test(t)) return 'hu';
-      if (/[槓杠摃刚钢缸冈]|\b(gang|gong|kong)\b/.test(t)) return 'kong';
-      if (/[碰掽蓬捧]|\b(peng|pong|pung)\b/.test(t)) return 'pong';
-      if (/[吃饬]|\b(chi|chee|chr)\b/.test(t)) return 'chi';
+      const t = text.toLowerCase().trim();
+      // Explicit multi-character calls — safe to match anywhere.
+      if (/自摸|自摩|字摸|\bzi\s?mo\b|\bzimo\b/.test(t)) return 'zimo';
+      if (/胡了|胡牌|和牌|\bmahjong\b/.test(t)) return 'hu';
+      const zh = t.replace(/[^一-鿿]/g, '');
+      if (zh.length <= 3) {              // a brief exclamation — cast a wide net
+        if (/[胡糊湖壶蝴狐弧葫鹕唬户]|\b(hu|hoo|who|woo)\b/.test(t)) return 'hu';
+        if (/[槓杠摃刚钢港缸冈扛纲岗钢]|\b(gang|gong|kong)\b/.test(t)) return 'kong';
+        if (/[碰掽蓬捧盆彭棚朋鹏]|\b(peng|pong|pung)\b/.test(t)) return 'pong';
+        if (/[吃持池迟尺赤痴哧嗤饬]|\b(chi|chee|chir)\b/.test(t)) return 'chi';
+      } else {                           // a sentence — canonical characters only
+        if (/[槓杠]/.test(t)) return 'kong';
+        if (/碰/.test(t)) return 'pong';
+        if (/吃/.test(t)) return 'chi';
+        if (/胡/.test(t)) return 'hu';
+      }
       return null;
     }
 
-    function fireCall(type) {
-      const now = Date.now();
-      if (lastFired[type] && now - lastFired[type] < CALL_COOLDOWN) return;
-      lastFired[type] = now;
+    // Decide which call a recognised segment contains and fire one animation per
+    // occurrence not yet shown for this segment (capped, in case the recogniser
+    // over-transcribes a drawn-out shout).
+    function detectInSegment(idx, res) {
+      let type = null;
+      for (let a = 0; a < res.length && !type; a++) type = matchCall(res[a].transcript || '');
+      if (!type) return;
+      const txt = (res[0] && res[0].transcript) || '';
+      const zh = txt.replace(/[^一-鿿]/g, '');
+      let count = 1;                          // count repeats only on a short exclamation
+      if (zh.length <= 6) {
+        const m = txt.match(CALL_RX[type]);
+        if (m && m.length > 1) count = m.length;
+      }
+      const key = idx + ':' + type;
+      const already = firedCounts[key] || 0;
+      if (count <= already) return;
+      firedCounts[key] = count;
       featuresUsed.add('voice');
-      showCall(type);
+      const reps = Math.min(count - already, 5);
+      for (let n = 0; n < reps; n++) setTimeout(() => showCall(type), n * 240);
     }
 
     function setVoiceStatus(msg, isErr) {
@@ -859,38 +903,86 @@
       r.interimResults = true;
       r.maxAlternatives = 3;
       r.onresult = (e) => {
+        let heard = '';
         for (let i = e.resultIndex; i < e.results.length; i++) {
           const res = e.results[i];
-          for (let a = 0; a < res.length; a++) {
-            const type = matchCall(res[a].transcript || '');
-            if (type) { fireCall(type); break; }
-          }
+          heard = res[0] && res[0].transcript ? res[0].transcript : heard;
+          detectInSegment(i, res);
         }
+        // Show what the mic is picking up so it's obvious it's working (and so a
+        // missed call is visibly "heard X but didn't match" rather than silence).
+        if (heard.trim() && voiceEnabled) setVoiceStatus('Heard: ' + heard.trim());
       };
       r.onerror = (e) => {
         if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
           voiceEnabled = false;
-          setVoiceStatus('麦克风被拦截 Mic blocked — allow it in browser settings', true);
+          setVoiceStatus('麦克风被拦截 Mic blocked — tap the 🎤/🔒 icon by the address bar → Allow', true);
           updateVoiceUI();
         }
         // 'no-speech' / 'aborted' / 'network' just end the session; onend restarts.
       };
       r.onend = () => {
         // Recognisers stop themselves periodically (and after silence); keep
-        // listening as long as the user left it on.
-        if (voiceEnabled) {
-          try { r.start(); } catch (e) {}
+        // listening as long as the user left it on. Back off if it's ending
+        // almost immediately (e.g. a persistent network error) so we never spin
+        // in a tight start→error→start loop, and give up after a few rapid fails.
+        if (!voiceEnabled) return;
+        if (Date.now() - lastStart < 500) {
+          if (++restartFails > 6) {
+            voiceEnabled = false;
+            setVoiceStatus('语音已暂停 Paused — tap to retry', true);
+            updateVoiceUI();
+            return;
+          }
+          setTimeout(restartVoice, Math.min(2000, 300 * restartFails));
+        } else {
+          restartFails = 0;
+          restartVoice();
         }
       };
       return r;
     }
 
-    function startVoice() {
+    let lastStart = 0, restartFails = 0;
+    function restartVoice() {
+      if (!voiceEnabled || !recognition) return;
+      lastStart = Date.now();
+      firedCounts = {};   // segment indices reset each session — clear stale counts
+      try { recognition.start(); } catch (e) {}
+    }
+
+    // Ask for the mic explicitly so the browser shows its native "Allow" prompt
+    // — SpeechRecognition.start() alone often won't prompt on Chrome and just
+    // fails with not-allowed. Returns true once the mic is usable.
+    async function requestMic() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return true;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        // Recognition opens its own capture; release this one so we don't hold
+        // two mic streams (and so the recording indicator reflects recognition).
+        stream.getTracks().forEach(t => t.stop());
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function startVoice() {
       if (!voiceSupported()) return;
       try { getAudio(); } catch (e) {}   // prime audio within the tap gesture (iOS)
+      setVoiceStatus('请允许麦克风 Allow the mic…');
+      updateVoiceUI();
+      const ok = await requestMic();
+      if (!ok) {
+        voiceEnabled = false;
+        setVoiceStatus('麦克风被拦截 Mic blocked — tap the 🎤/🔒 icon by the address bar → Allow', true);
+        updateVoiceUI();
+        return;
+      }
       if (!recognition) recognition = createRecognition();
       voiceEnabled = true;
-      try { recognition.start(); } catch (e) {}
+      restartFails = 0;
+      restartVoice();
       setVoiceStatus('聆听中 Listening…');
       featuresUsed.add('voice');
       updateVoiceUI();
@@ -911,12 +1003,11 @@
     function updateVoiceUI() {
       const row = document.getElementById('voice-row');
       if (!row) return;
-      const show = gameType === 'mahjong' && voiceSupported();
-      row.style.display = show ? 'flex' : 'none';
+      row.style.display = (gameType === 'mahjong' && voiceSupported()) ? 'flex' : 'none';
       const btn = document.getElementById('voice-toggle');
       const label = document.getElementById('voice-label');
       if (btn) btn.classList.toggle('on', voiceEnabled);
-      if (label) label.textContent = voiceEnabled ? '🎤 语音 ON' : '🎙️ 语音 Voice';
+      if (label) label.textContent = voiceEnabled ? '🎤 听着呢 Listening' : '🎙️ 语音 Voice';
     }
 
     function keyFeedback() {
