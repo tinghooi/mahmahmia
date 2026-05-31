@@ -683,13 +683,17 @@
       confettiTimer = setTimeout(() => { layer.innerHTML = ''; }, 1800);
     }
 
-    // A hand notably bigger than this table's usual stakes (and a new high),
-    // judged from prior rounds so it scales to any point values.
+    // A hand notably bigger than this table's usual — at least double the
+    // typical (median) hand so far. Median, not mean, so one big hand doesn't
+    // inflate the baseline and block later triggers; and we no longer require
+    // it to be the night's record, so repeated big hands still celebrate.
+    // Scales to whatever point values this table plays with.
     function isBigWin(points) {
       if (rounds.length < 3) return false;
-      const prev = rounds.map(r => r.points);
-      const avg = prev.reduce((a, b) => a + b, 0) / prev.length;
-      return points >= avg * 2.5 && points >= Math.max(...prev);
+      const sorted = rounds.map(r => r.points).sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+      return points >= median * 2;
     }
 
     function keyFeedback() {
