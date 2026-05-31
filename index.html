@@ -847,20 +847,35 @@
     // doesn't set off the animation.
     function matchCall(text) {
       const t = text.toLowerCase().trim();
-      // Explicit multi-character calls — safe to match anywhere.
-      if (/自摸|自摩|字摸|\bzi\s?mo\b|\bzimo\b/.test(t)) return 'zimo';
-      if (/胡了|胡牌|和牌|\bmahjong\b/.test(t)) return 'hu';
+      const c = t.replace(/[\s,.!?。，、！？·]/g, '');   // collapse "pong pong" / "zi mo"
       const zh = t.replace(/[^一-鿿]/g, '');
-      if (zh.length <= 3) {              // a brief exclamation — cast a wide net
-        if (/[胡糊湖壶蝴狐弧葫鹕唬户]|\b(hu|hoo|who|woo)\b/.test(t)) return 'hu';
-        if (/[槓杠摃刚钢港缸冈扛纲岗钢]|\b(gang|gong|kong)\b/.test(t)) return 'kong';
-        if (/[碰掽蓬捧盆彭棚朋鹏]|\b(peng|pong|pung)\b/.test(t)) return 'pong';
-        if (/[吃持池迟尺赤痴哧嗤饬]|\b(chi|chee|chir)\b/.test(t)) return 'chi';
-      } else {                           // a sentence — canonical characters only
-        if (/[槓杠]/.test(t)) return 'kong';
-        if (/碰/.test(t)) return 'pong';
-        if (/吃/.test(t)) return 'chi';
-        if (/胡/.test(t)) return 'hu';
+      // --- Chinese (when zh-CN recognition returns characters) ---
+      if (/自摸|自摩|字摸/.test(c)) return 'zimo';
+      if (/胡了|胡牌|和牌|食胡|食糊/.test(c)) return 'hu';
+      if (zh.length) {
+        if (zh.length <= 3) {            // a brief exclamation — accept homophones
+          if (/[胡糊湖壶蝴狐弧葫鹕唬]/.test(c)) return 'hu';
+          if (/[槓杠摃刚钢港缸冈扛纲岗]/.test(c)) return 'kong';
+          if (/[碰掽蓬捧盆彭棚朋鹏]/.test(c)) return 'pong';
+          if (/[吃持池迟尺赤痴哧嗤]/.test(c)) return 'chi';
+        } else {                         // a sentence — canonical characters only
+          if (/[槓杠]/.test(c)) return 'kong';
+          if (/碰/.test(c)) return 'pong';
+          if (/吃/.test(c)) return 'chi';
+          if (/胡/.test(c)) return 'hu';
+        }
+        return null;
+      }
+      // --- English / romanised (Chrome often hears these calls in English) ---
+      // Short standalone shouts only, word-bounded, so ordinary English chatter
+      // doesn't keep firing.
+      if (c.length <= 16) {
+        if (/\bmahjong\b/.test(t)) return 'hu';
+        if (/\b(zi\s?mo|zimo|zeemo|zeemow)\b/.test(t)) return 'zimo';
+        if (/\b(pong|pung|pom|bong|peng|pon)\b/.test(t)) return 'pong';
+        if (/\b(gong|gang|kong|gung|kung|kang)\b/.test(t)) return 'kong';
+        if (/\b(chi|chee|chir|cher|chih)\b/.test(t)) return 'chi';
+        if (/\b(hu|hoo|who|woo|foo|wu)\b/.test(t)) return 'hu';
       }
       return null;
     }
