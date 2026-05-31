@@ -1,6 +1,6 @@
 // MahMahMia service worker — makes the app shell work offline.
 // Bump CACHE when the cached assets below change to invalidate old caches.
-const CACHE = 'mahmahmia-v1';
+const CACHE = 'mahmahmia-v2';
 const CORE = [
   '/',
   '/index.html',
@@ -11,11 +11,16 @@ const CORE = [
 ];
 
 self.addEventListener('install', (event) => {
+  // Note: no skipWaiting() here — a new worker stays in "waiting" so the page
+  // can show an update prompt and skip on the user's command (see 'message').
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE);
     await cache.addAll(CORE);
-    self.skipWaiting();
   })());
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
