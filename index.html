@@ -192,6 +192,22 @@
     }
     .snackbar.show { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
     .snackbar .banner-detail { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+    .update-bar {
+      position: fixed; left: 50%; transform: translateX(-50%);
+      bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      width: calc(100% - 32px); max-width: 420px;
+      display: none; align-items: center; gap: 12px;
+      background: var(--ink); color: var(--bg);
+      padding: 12px 16px; border-radius: 12px; font-size: 14px; font-weight: 600;
+      z-index: 150; box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+    .update-bar.show { display: flex; }
+    .update-bar button {
+      margin-left: auto; background: var(--primary); color: #fff; border: none;
+      border-radius: 8px; padding: 8px 14px; font-size: 14px; font-weight: 700;
+      cursor: pointer; white-space: nowrap; -webkit-tap-highlight-color: transparent;
+    }
+    .update-bar button:active { transform: scale(0.96); }
     @keyframes pulse-panel {
       0% { box-shadow: 0 0 0 2px var(--primary); }
       100% { box-shadow: 0 1px 3px var(--shadow); }
@@ -266,6 +282,11 @@
   <p class="subtitle">Score Tracker</p>
 
   <div id="success-banner" class="snackbar"></div>
+
+  <div id="update-banner" class="update-bar" role="alert">
+    <span>🔄 New version available</span>
+    <button onclick="applyUpdate()">Refresh</button>
+  </div>
 
   <section id="setup" class="active">
     <div class="label">Game Type</div>
@@ -1052,10 +1073,40 @@
       updateResumeBanner();
     }
 
-    // Register the service worker so the app shell works offline.
+    // Register the service worker (offline support) and prompt to refresh
+    // when a new version has been installed and is waiting to take over.
+    let waitingWorker = null;
+    function showUpdateBanner(worker) {
+      waitingWorker = worker;
+      const el = document.getElementById('update-banner');
+      if (el) el.classList.add('show');
+    }
+    function applyUpdate() {
+      const el = document.getElementById('update-banner');
+      if (el) el.classList.remove('show');
+      if (waitingWorker) waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+      else window.location.reload();
+    }
     if ('serviceWorker' in navigator) {
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;        // reload once, after the new worker takes control
+        refreshing = true;
+        window.location.reload();
+      });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
+        navigator.serviceWorker.register('/sw.js').then((reg) => {
+          // An update may already be waiting from a previous visit.
+          if (reg.waiting && navigator.serviceWorker.controller) showUpdateBanner(reg.waiting);
+          reg.addEventListener('updatefound', () => {
+            const nw = reg.installing;
+            if (!nw) return;
+            nw.addEventListener('statechange', () => {
+              // "installed" + an existing controller => this is an update (not first install).
+              if (nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner(nw);
+            });
+          });
+        }).catch(() => {});
       });
     }
   </script>
