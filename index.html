@@ -400,13 +400,26 @@
     }
 
     // --- Persistence ---
+    let saveWarned = false;
     function saveState() {
       const state = { gameType, playerCount, players, rounds, gameStartTime };
-      localStorage.setItem('mahmahmia-state', JSON.stringify(state));
+      try {
+        localStorage.setItem('mahmahmia-state', JSON.stringify(state));
+      } catch (e) {
+        // Storage may be unavailable (private mode, quota exceeded, disabled).
+        // Play continues from memory; just warn once so the user knows a
+        // refresh won't keep their progress.
+        if (!saveWarned) {
+          saveWarned = true;
+          showToast('⚠️ Progress won’t be saved', 'Storage is unavailable — a refresh will lose this game.');
+        }
+      }
     }
 
     function clearState() {
-      localStorage.removeItem('mahmahmia-state');
+      try {
+        localStorage.removeItem('mahmahmia-state');
+      } catch (e) { /* storage unavailable — nothing to clear */ }
     }
 
     function restoreState() {
