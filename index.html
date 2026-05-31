@@ -1051,6 +1051,13 @@
       renderNameInputs();
       updateResumeBanner();
     }
+
+    // Register the service worker so the app shell works offline.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
   </script>
 </body>
 </html>
