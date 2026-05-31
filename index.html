@@ -243,6 +243,23 @@
       to { background: transparent; }
     }
     .round-entry.flash { animation: flash-in 0.6s ease-out; }
+    /* Big-win celebration: a short coin/confetti shower. */
+    #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 300; overflow: hidden; }
+    .confetti-piece {
+      position: absolute; top: 0; will-change: transform, opacity;
+      animation: confetti-fall var(--dur, 2s) cubic-bezier(0.3, 0.4, 0.6, 1) forwards;
+    }
+    @keyframes confetti-fall {
+      0%   { transform: translate(0, -12vh) rotate(0deg); opacity: 1; }
+      88%  { opacity: 1; }
+      100% { transform: translate(var(--dx, 0), 112vh) rotate(var(--rot, 360deg)); opacity: 0; }
+    }
+    .standings-bigwin { animation: bigwin-pop 0.7s ease-out; }
+    @keyframes bigwin-pop {
+      0%   { transform: scale(1); box-shadow: 0 0 0 0 var(--primary); }
+      35%  { transform: scale(1.04); box-shadow: 0 0 0 3px var(--primary); }
+      100% { transform: scale(1); box-shadow: 0 1px 3px var(--shadow); }
+    }
     @media (prefers-reduced-motion: reduce) {
       * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
@@ -498,6 +515,49 @@
       // Quick descending boop
       playTone(400, 0.1, 'sine', 0);
       playTone(250, 0.15, 'sine', 0.08);
+    }
+
+    function soundBigWin() {
+      // Triumphant ascending flourish for a big hand
+      playTone(659, 0.12, 'square', 0);
+      playTone(784, 0.12, 'square', 0.1);
+      playTone(988, 0.12, 'square', 0.2);
+      playTone(1319, 0.28, 'square', 0.3);
+    }
+
+    // --- Big-win celebration ---
+    function celebrate() {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      let layer = document.getElementById('confetti');
+      if (!layer) {
+        layer = document.createElement('div');
+        layer.id = 'confetti';
+        document.body.appendChild(layer);
+      }
+      const emojis = ['🪙', '💰', '🎉', '✨', '💵', '🀄'];
+      for (let i = 0; i < 28; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        piece.style.left = (Math.random() * 100) + 'vw';
+        piece.style.fontSize = (20 + Math.random() * 16) + 'px';
+        piece.style.setProperty('--dx', (Math.random() * 30 - 15) + 'vw');
+        piece.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+        const dur = 1.4 + Math.random() * 1.0;
+        piece.style.setProperty('--dur', dur + 's');
+        piece.style.animationDelay = (Math.random() * 0.25) + 's';
+        layer.appendChild(piece);
+        setTimeout(() => piece.remove(), (dur + 0.4) * 1000);
+      }
+    }
+
+    // A hand notably bigger than this table's usual stakes (and a new high),
+    // judged from prior rounds so it scales to any point values.
+    function isBigWin(points) {
+      if (rounds.length < 3) return false;
+      const prev = rounds.map(r => r.points);
+      const avg = prev.reduce((a, b) => a + b, 0) / prev.length;
+      return points >= avg * 2.5 && points >= Math.max(...prev);
     }
 
     function keyFeedback() {
@@ -790,13 +850,21 @@
         return;
       }
       document.getElementById('scoring-error').textContent = '';
+      const bigWin = isBigWin(points);
+      const bigWinner = selectedWinner;
       rounds.push({ loser: selectedLoser, winner: selectedWinner, points });
       pointsInput.value = '';
       pointsInput.blur();
       showToast(funToast(selectedLoser, selectedWinner, points), `${selectedLoser} → ${selectedWinner}: ${fmt(points)} pts`);
-      soundCoin();
+      if (bigWin) { soundBigWin(); celebrate(); } else { soundCoin(); }
       // Keep loser/winner selected for quick consecutive entries
       renderStandings();
+      if (bigWin) {
+        // Pop the big winner's row in the freshly-rendered standings.
+        const rows = document.querySelectorAll('#standings .standings-row');
+        rows.forEach(r => { if (r.querySelector('.st-name')?.textContent === bigWinner) r.classList.add('standings-bigwin'); });
+        setTimeout(() => rows.forEach(r => r.classList.remove('standings-bigwin')), 700);
+      }
       flashStandings();
       renderRoundLog();
       renderQuickAmounts();
