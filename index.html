@@ -246,11 +246,34 @@
     @media (prefers-reduced-motion: reduce) {
       * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
-    /* Tablets / portrait iPad: roomier single column, bigger keypad */
+    /* Score rows + settlement use classes so sizes can scale responsively. */
+    .st-name { font-weight: 600; font-size: 16px; }
+    .st-score { font-weight: 700; font-size: 18px; }
+    .settle-title { font-size: 20px; font-weight: bold; color: var(--primary); }
+    .settle-flavor { color: var(--primary); font-size: 14px; margin-top: 6px; }
+    .transfer-row { display: flex; align-items: center; gap: 8px; padding: 12px 0; border-bottom: 1px solid var(--border-soft); }
+    .transfer-name { font-weight: 600; font-size: 16px; }
+    .transfer-arrow { color: var(--muted); }
+    .transfer-amt { margin-left: auto; font-weight: 800; font-size: 18px; color: var(--ink); }
+    /* Tablets / portrait iPad: roomier single column, bigger everything */
     @media (min-width: 700px) {
       section { max-width: 600px; }
+      h1 { font-size: 30px; }
+      .subtitle { font-size: 16px; }
+      .label { font-size: 13px; }
+      .btn { font-size: 17px; }
+      .panel { padding: 16px; }
+      .player-btn { font-size: 16px; min-height: 52px; }
+      .quick-amt { font-size: 16px; min-height: 44px; }
       .kp-key { min-height: 60px; font-size: 22px; }
       .points-display { font-size: 26px; }
+      .st-name { font-size: 18px; }
+      .st-score { font-size: 22px; }
+      .player-title { font-size: 14px; }
+      .settle-title { font-size: 26px; }
+      .settle-flavor { font-size: 16px; }
+      .transfer-name { font-size: 18px; }
+      .transfer-amt { font-size: 22px; }
     }
     /* Wide / landscape iPad & desktop: two-column scoring so the live
        scoreboard and the entry pad are on screen at the same time. */
@@ -264,6 +287,8 @@
       .sg-standings { grid-area: standings; }
       .sg-entry { grid-area: entry; margin-bottom: 0; }
       .sg-log { grid-area: log; }
+      .st-name { font-size: 20px; }
+      .st-score { font-size: 26px; }
     }
   </style>
   <script>
@@ -362,8 +387,8 @@
 
   <section id="settlement">
     <div style="text-align:center;margin-bottom:16px;">
-      <div style="font-size:20px;font-weight:bold;color:var(--primary);">Game Over!</div>
-      <div id="settlement-flavor" style="color:var(--primary);font-size:14px;margin-top:6px;"></div>
+      <div class="settle-title">Game Over!</div>
+      <div id="settlement-flavor" class="settle-flavor"></div>
     </div>
 
     <div class="label">Final Scores</div>
@@ -587,34 +612,45 @@
       return scores;
     }
 
-    function getTitle(score, isTop, isBottom) {
+    // Escalating titles: the bigger the lead/deficit (relative to the largest
+    // swing in the game so far), the more dramatic the label. maxAbs scales the
+    // tiers to whatever point values this table is playing with.
+    function getTitle(score, isTop, isBottom, maxAbs) {
       if (score === 0) return { text: '打酱油', emoji: '😐' };
-      if (isTop && score > 0) return { text: '大老板', emoji: '👑' };
-      if (isBottom && score < 0) return { text: '破产王', emoji: '💸' };
-      if (score > 0) return { text: '小赚', emoji: '😏' };
-      return { text: '惨了', emoji: '😭' };
+      const ratio = maxAbs > 0 ? Math.abs(score) / maxAbs : 0;
+      if (score > 0) {
+        if (isTop) return ratio >= 0.9 ? { text: '碾压全场', emoji: '👑' } : { text: '大老板', emoji: '👑' };
+        if (ratio >= 0.6) return { text: '赢麻了', emoji: '🤑' };
+        if (ratio >= 0.3) return { text: '大赚', emoji: '💰' };
+        return { text: '小赚', emoji: '😏' };
+      }
+      if (isBottom) return ratio >= 0.9 ? { text: '倾家荡产', emoji: '💸' } : { text: '破产王', emoji: '💸' };
+      if (ratio >= 0.6) return { text: '大出血', emoji: '🩸' };
+      if (ratio >= 0.3) return { text: '惨了', emoji: '😭' };
+      return { text: '小输', emoji: '😬' };
     }
 
     function renderScorePanel(elementId, showTitles) {
       const scores = getNetScores();
       const sorted = players.slice().sort((a, b) => scores[b] - scores[a]);
       const top = sorted[0], bottom = sorted[sorted.length - 1];
+      const maxAbs = Math.max(1, ...players.map(p => Math.abs(scores[p])));
       document.getElementById(elementId).innerHTML = sorted.map(p => {
         const s = scores[p];
         const cls = s > 0 ? 'score-pos' : s < 0 ? 'score-neg' : 'score-zero';
         const prefix = s > 0 ? '+' : '';
         if (showTitles && rounds.length > 0) {
-          const t = getTitle(s, p === top, p === bottom);
+          const t = getTitle(s, p === top, p === bottom, maxAbs);
           return `<div style="padding:8px 0;" class="${cls} standings-row">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-weight:600;font-size:16px;">${esc(p)}</span>
-              <span style="font-weight:700;font-size:18px;">${prefix}${fmt(s)}</span>
+              <span class="st-name">${esc(p)}</span>
+              <span class="st-score">${prefix}${fmt(s)}</span>
             </div>
             <div class="player-title">${t.emoji} ${t.text}</div>
           </div>`;
         }
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;" class="${cls}">
-      <span>${esc(p)}</span><span style="font-weight:700;">${prefix}${fmt(s)}</span>
+      <span class="st-name">${esc(p)}</span><span class="st-score">${prefix}${fmt(s)}</span>
     </div>`;
       }).join('');
     }
@@ -909,7 +945,7 @@
       }
 
       // Final scores
-      renderScorePanel('final-scores', false);
+      renderScorePanel('final-scores', true);
 
       // Transfers
       const container = document.getElementById('transfers');
@@ -917,11 +953,11 @@
         container.innerHTML = '<div style="color:var(--success);text-align:center;padding:8px;">大家打平了！</div>';
       } else {
         container.innerHTML = transfers.map(t =>
-          `<div style="display:flex;align-items:center;gap:8px;padding:12px 0;border-bottom:1px solid var(--border-soft);">
-            <span class="score-neg" style="font-weight:600;font-size:16px;">${esc(t.from)}</span>
-            <span style="color:var(--muted);">→</span>
-            <span class="score-pos" style="font-weight:600;font-size:16px;">${esc(t.to)}</span>
-            <span style="margin-left:auto;font-weight:800;font-size:18px;color:var(--ink);">${fmt(t.amount)} pts</span>
+          `<div class="transfer-row">
+            <span class="score-neg transfer-name">${esc(t.from)}</span>
+            <span class="transfer-arrow">→</span>
+            <span class="score-pos transfer-name">${esc(t.to)}</span>
+            <span class="transfer-amt">${fmt(t.amount)} pts</span>
           </div>`
         ).join('');
       }
