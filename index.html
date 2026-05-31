@@ -254,6 +254,23 @@
       88%  { opacity: 1; }
       100% { transform: translate(var(--dx, 0), 112vh) rotate(var(--rot, 360deg)); opacity: 0; }
     }
+    .burst-piece {
+      position: absolute; top: 50%; left: 50%; will-change: transform, opacity;
+      animation: burst-out var(--bdur, 0.8s) ease-out forwards;
+    }
+    @keyframes burst-out {
+      0%   { transform: translate(-50%, -50%) scale(0.4); opacity: 1; }
+      100% { transform: translate(calc(-50% + var(--bx, 0)), calc(-50% + var(--by, 0))) scale(1.15); opacity: 0; }
+    }
+    @keyframes screen-shake {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      15% { transform: translate(-6px, 3px) rotate(-0.6deg); }
+      30% { transform: translate(5px, -3px) rotate(0.5deg); }
+      45% { transform: translate(-5px, 2px) rotate(-0.4deg); }
+      60% { transform: translate(4px, -2px) rotate(0.3deg); }
+      75% { transform: translate(-3px, 1px) rotate(-0.2deg); }
+    }
+    .screen-shake { animation: screen-shake 0.45s ease-in-out; }
     .standings-bigwin { animation: bigwin-pop 0.7s ease-out; }
     @keyframes bigwin-pop {
       0%   { transform: scale(1); box-shadow: 0 0 0 0 var(--primary); }
@@ -283,19 +300,34 @@
       62%  { transform: scale(1); opacity: 1; }
       100% { transform: scale(1.4); opacity: 0; }
     }
-    .splash-emoji { font-size: 64px; line-height: 1; }
+    .splash-flash {
+      position: absolute; top: 50%; left: 50%; width: 60vmax; height: 60vmax;
+      transform: translate(-50%, -50%) scale(0.2); border-radius: 50%; pointer-events: none;
+      background: radial-gradient(circle, rgba(255,216,107,0.55) 0%, rgba(255,216,107,0.18) 38%, rgba(255,216,107,0) 70%);
+      animation: splash-flash 0.7s ease-out forwards; will-change: transform, opacity;
+    }
+    @keyframes splash-flash {
+      0%   { transform: translate(-50%, -50%) scale(0.2); opacity: 0.9; }
+      100% { transform: translate(-50%, -50%) scale(1.7); opacity: 0; }
+    }
+    .splash-emoji { font-size: 72px; line-height: 1; }
     .splash-word {
-      font-size: 46px; font-weight: 900; margin-top: 6px; letter-spacing: 1px;
+      position: relative; font-size: 56px; font-weight: 900; margin-top: 6px; letter-spacing: 1px;
       color: #ffd86b; text-shadow: 0 2px 0 #b3793f, 0 0 26px rgba(255,200,80,0.6);
+      animation: word-glow 0.42s ease-in-out 0.12s 2 alternate;
+    }
+    @keyframes word-glow {
+      from { text-shadow: 0 2px 0 #b3793f, 0 0 14px rgba(255,200,80,0.45); }
+      to   { text-shadow: 0 2px 0 #b3793f, 0 0 44px rgba(255,228,140,0.95); }
     }
     .splash-sub {
-      font-size: 20px; font-weight: 700; color: #fff; margin-top: 10px;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+      position: relative; font-size: 20px; font-weight: 700; color: #fff; margin-top: 10px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.6);
     }
     @media (min-width: 700px) {
-      .splash-emoji { font-size: 92px; }
-      .splash-word { font-size: 72px; }
-      .splash-sub { font-size: 26px; }
+      .splash-emoji { font-size: 104px; }
+      .splash-word { font-size: 84px; }
+      .splash-sub { font-size: 28px; }
     }
     @media (prefers-reduced-motion: reduce) {
       * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -555,11 +587,13 @@
     }
 
     function soundBigWin() {
-      // Triumphant ascending flourish for a big hand
-      playTone(659, 0.12, 'square', 0);
-      playTone(784, 0.12, 'square', 0.1);
-      playTone(988, 0.12, 'square', 0.2);
-      playTone(1319, 0.28, 'square', 0.3);
+      // Low boom, triumphant ascending flourish, then a sparkle — for drama.
+      playTone(110, 0.28, 'triangle', 0);
+      playTone(659, 0.12, 'square', 0.05);
+      playTone(784, 0.12, 'square', 0.15);
+      playTone(988, 0.12, 'square', 0.25);
+      playTone(1319, 0.3, 'square', 0.35);
+      playTone(1760, 0.22, 'sine', 0.52);
     }
 
     // --- Big-win celebration ---
@@ -568,9 +602,20 @@
     let splashTimer = null;
     function clearCelebration() {
       document.querySelectorAll('.splash').forEach(el => el.remove());
+      document.querySelectorAll('.screen-shake').forEach(el => el.classList.remove('screen-shake'));
       const layer = document.getElementById('confetti');
       if (layer) layer.innerHTML = '';
       if (splashTimer) { clearTimeout(splashTimer); splashTimer = null; }
+    }
+
+    function screenShake() {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const sec = document.querySelector('section.active');
+      if (!sec) return;
+      sec.classList.remove('screen-shake');
+      void sec.offsetWidth;            // restart the animation
+      sec.classList.add('screen-shake');
+      setTimeout(() => sec.classList.remove('screen-shake'), 500);
     }
 
     const bigWinWords = ['赢麻了!', '大杀四方!', '血赚!', '横扫千军!', '一夜暴富!', '财源滚滚!'];
@@ -580,6 +625,7 @@
       const el = document.createElement('div');
       el.className = 'splash';
       el.innerHTML =
+        '<div class="splash-flash"></div>' +
         '<div class="splash-card">' +
           '<div class="splash-emoji">🤑</div>' +
           `<div class="splash-word">${esc(word)}</div>` +
@@ -611,6 +657,21 @@
         piece.style.animationDelay = (Math.random() * 0.15) + 's';
         layer.appendChild(piece);
         setTimeout(() => piece.remove(), (dur + 0.3) * 1000);
+      }
+      // Center coin explosion bursting outward, for extra punch.
+      for (let i = 0; i < 14; i++) {
+        const b = document.createElement('div');
+        b.className = 'burst-piece';
+        b.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        b.style.fontSize = (22 + Math.random() * 14) + 'px';
+        const ang = Math.random() * Math.PI * 2;
+        const dist = 30 + Math.random() * 45;
+        b.style.setProperty('--bx', (Math.cos(ang) * dist) + 'vmin');
+        b.style.setProperty('--by', (Math.sin(ang) * dist) + 'vmin');
+        const bdur = 0.6 + Math.random() * 0.35;
+        b.style.setProperty('--bdur', bdur + 's');
+        layer.appendChild(b);
+        setTimeout(() => b.remove(), (bdur + 0.2) * 1000);
       }
     }
 
@@ -920,7 +981,7 @@
       pointsInput.value = '';
       pointsInput.blur();
       showToast(funToast(selectedLoser, selectedWinner, points), `${selectedLoser} → ${selectedWinner}: ${fmt(points)} pts`);
-      if (bigWin) { soundBigWin(); celebrate(); bigWinSplash(bigWinner, points); } else { soundCoin(); }
+      if (bigWin) { soundBigWin(); screenShake(); celebrate(); bigWinSplash(bigWinner, points); } else { soundCoin(); }
       // Keep loser/winner selected for quick consecutive entries
       renderStandings();
       if (bigWin) {
