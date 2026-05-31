@@ -36,7 +36,9 @@
   <meta name="twitter:description" content="Track points during the game, settle up at the end. Free, no signup needed.">
   <meta name="twitter:image" content="https://mahmahmia.com/og-image.png">
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+  <!-- Analytics only (used at end-of-game). Deferred so it never blocks first
+       paint or an offline launch; sb is created lazily once it has loaded. -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -548,6 +550,9 @@
     let audioCtx = null;
     function getAudio() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      // iOS starts the context suspended; getAudio() is only called from user
+      // gestures, so resuming here makes the first taps/sounds reliably audible.
+      if (audioCtx.state === 'suspended') audioCtx.resume();
       return audioCtx;
     }
 
@@ -599,13 +604,14 @@
     // --- Big-win celebration ---
     // Clear any in-progress celebration immediately so rapid score entry is
     // never held up by a lingering splash/confetti from the previous round.
-    let splashTimer = null;
+    let splashTimer = null, confettiTimer = null;
     function clearCelebration() {
       document.querySelectorAll('.splash').forEach(el => el.remove());
       document.querySelectorAll('.screen-shake').forEach(el => el.classList.remove('screen-shake'));
       const layer = document.getElementById('confetti');
       if (layer) layer.innerHTML = '';
       if (splashTimer) { clearTimeout(splashTimer); splashTimer = null; }
+      if (confettiTimer) { clearTimeout(confettiTimer); confettiTimer = null; }
     }
 
     function screenShake() {
@@ -656,7 +662,6 @@
         piece.style.setProperty('--dur', dur + 's');
         piece.style.animationDelay = (Math.random() * 0.15) + 's';
         layer.appendChild(piece);
-        setTimeout(() => piece.remove(), (dur + 0.3) * 1000);
       }
       // Center coin explosion bursting outward, for extra punch.
       for (let i = 0; i < 14; i++) {
@@ -671,8 +676,11 @@
         const bdur = 0.6 + Math.random() * 0.35;
         b.style.setProperty('--bdur', bdur + 's');
         layer.appendChild(b);
-        setTimeout(() => b.remove(), (bdur + 0.2) * 1000);
       }
+      // One cleanup timer instead of ~38 per-piece timers; cleared early by
+      // clearCelebration() if the next round comes in fast.
+      clearTimeout(confettiTimer);
+      confettiTimer = setTimeout(() => { layer.innerHTML = ''; }, 1800);
     }
 
     // A hand notably bigger than this table's usual stakes (and a new high),
@@ -1069,6 +1077,7 @@
       renderSettlement();
       showScreen('settlement');
       soundSettle();
+      const sb = getSb();
       if (sb) {
         const scores = Object.values(getNetScores());
         sb.from('game_sessions').insert({
@@ -1176,7 +1185,15 @@
     const SUPABASE_URL = 'https://rayamhtdgqgrtsjkkhrs.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJheWFtaHRkZ3FncnRzamtraHJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxNTkyMDgsImV4cCI6MjA4OTczNTIwOH0.Sq_YAu5Vgj57X4bDZiLwnTPey2jNDitKUKkybN7bA90';
     const APP_VERSION = '1.0';
-    const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    // Created lazily on first use so the deferred Supabase script has loaded by then.
+    let _sb = null, _sbInit = false;
+    function getSb() {
+      if (!_sbInit) {
+        _sbInit = true;
+        _sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+      }
+      return _sb;
+    }
 
     function getClientId() {
       let id = localStorage.getItem('mamamia_cid');
