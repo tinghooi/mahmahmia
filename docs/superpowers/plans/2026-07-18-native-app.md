@@ -161,7 +161,7 @@ describe('getNetScores / sortByScore / getTitle', () => {
     expect(getNetScores(players, rounds)).toEqual({ A: -7, B: 12, C: -5 });
   });
   it('sorts descending by score', () => {
-    expect(sortByScore(players, getNetScores(players, rounds))).toEqual(['B', 'A', 'C']);
+    expect(sortByScore(players, getNetScores(players, rounds))).toEqual(['B', 'C', 'A']);
   });
   it('titles match web logic', () => {
     expect(getTitle(0, false, false)).toEqual({ text: '打酱油', emoji: '😐' });
