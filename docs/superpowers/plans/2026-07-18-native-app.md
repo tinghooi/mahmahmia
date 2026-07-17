@@ -1602,12 +1602,12 @@ export default function App() {
 
   // Launch: valid saved game (players AND rounds) opens directly on scoring.
   useEffect(() => {
+    initSounds(); // fire-and-forget: play functions no-op until ready
     (async () => {
-      await initSounds();
       const saved = await restoreState();
       if (saved) setGame(saved);
       setScreen(saved && saved.players.length > 0 && saved.rounds.length > 0 ? 'scoring' : 'setup');
-    })();
+    })().catch(() => setScreen('setup'));
   }, []);
 
   // Android hardware back: scoring → setup (game preserved), settlement → scoring, setup → exit.
