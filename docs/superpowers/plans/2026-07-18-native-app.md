@@ -885,7 +885,7 @@ export const Snackbar = forwardRef<SnackbarHandle>((_props, ref) => {
       Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
       hideTimer.current = setTimeout(() => {
         Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(
-          () => setMsg(null)
+          ({ finished }) => finished && setMsg(null)
         );
       }, 2500);
     },
