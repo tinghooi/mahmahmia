@@ -25,7 +25,9 @@
         "imageWidth": 200,
         "resizeMode": "contain",
         "backgroundColor": "#f5f0e8"
-      }]
+      }],
+      "expo-audio",
+      "expo-localization"
     ]
   }
 }
