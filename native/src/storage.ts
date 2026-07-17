@@ -34,17 +34,23 @@ export async function restoreState(): Promise<GameState | null> {
       rounds: s.rounds,
       gameStartTime: s.gameStartTime || Date.now(),
     };
-  } catch {
+  } catch (e) {
+    console.error('restoreState failed', e);
     await clearState();
     return null;
   }
 }
 
 export async function getClientId(): Promise<string> {
-  let id = await AsyncStorage.getItem(CID_KEY);
-  if (!id) {
-    id = Crypto.randomUUID();
-    await AsyncStorage.setItem(CID_KEY, id);
+  try {
+    let id = await AsyncStorage.getItem(CID_KEY);
+    if (!id) {
+      id = Crypto.randomUUID();
+      await AsyncStorage.setItem(CID_KEY, id);
+    }
+    return id;
+  } catch (e) {
+    console.error('getClientId failed', e);
+    return Crypto.randomUUID();
   }
-  return id;
 }

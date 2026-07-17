@@ -13,6 +13,7 @@ const state: GameState = {
 };
 
 beforeEach(() => AsyncStorage.clear());
+afterEach(() => jest.restoreAllMocks());
 
 describe('storage', () => {
   it('round-trips state under the web-compatible key', async () => {
@@ -26,12 +27,14 @@ describe('storage', () => {
   });
 
   it('discards corrupt JSON and clears it', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
     await AsyncStorage.setItem('mahmahmia-state', '{not json');
     expect(await restoreState()).toBeNull();
     expect(await AsyncStorage.getItem('mahmahmia-state')).toBeNull();
   });
 
   it('discards structurally invalid state', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
     await AsyncStorage.setItem('mahmahmia-state', JSON.stringify({ players: 'nope' }));
     expect(await restoreState()).toBeNull();
   });
@@ -48,5 +51,17 @@ describe('storage', () => {
     expect(id1).toBe('test-uuid-1234');
     expect(id2).toBe(id1);
     expect(await AsyncStorage.getItem('mamamia_cid')).toBe(id1);
+  });
+
+  it('saveState resolves (does not reject) when AsyncStorage.setItem rejects', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(AsyncStorage, 'setItem').mockRejectedValueOnce(new Error('disk full'));
+    await expect(saveState(state)).resolves.toBeUndefined();
+  });
+
+  it('getClientId still returns a UUID string when AsyncStorage.getItem rejects', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(AsyncStorage, 'getItem').mockRejectedValueOnce(new Error('disk full'));
+    expect(await getClientId()).toBe('test-uuid-1234');
   });
 });
