@@ -9,5 +9,13 @@
       "autoIncrement": true
     }
   },
-  "submit": { "production": {} }
+  "submit": {
+    "production": {
+      "ios": {
+        "appName": "MahMahMia",
+        "language": "en-US",
+        "sku": "mahmahmia"
+      }
+    }
+  }
 }
