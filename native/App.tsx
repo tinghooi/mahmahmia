@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  BackHandler, KeyboardAvoidingView, Platform, SafeAreaView,
-  ScrollView, StatusBar, StyleSheet, Text, View,
+  BackHandler, KeyboardAvoidingView, Platform,
+  ScrollView, StyleSheet, Text, View,
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
 import { SetupScreen } from './src/screens/SetupScreen';
 import { ScoringScreen } from './src/screens/ScoringScreen';
@@ -92,58 +94,60 @@ export default function App() {
   const hasActiveGame = game.rounds.length > 0 && game.players.length > 0;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.bg} />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <StatusBar style="dark" />
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <Text style={styles.h1}>🀄 MahMahMia</Text>
-          <Text style={styles.subtitle}>Score Tracker</Text>
+          <ScrollView
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={styles.h1}>🀄 MahMahMia</Text>
+            <Text style={styles.subtitle}>Score Tracker</Text>
 
-          {screen === 'setup' && (
-            <SetupScreen
-              initialGameType={game.gameType}
-              hasActiveGame={hasActiveGame}
-              resume={hasActiveGame
-                ? { gameType: game.gameType, players: game.players, roundCount: game.rounds.length }
-                : null}
-              onStart={startGame}
-              onResume={() => setScreen('scoring')}
-            />
-          )}
-          {screen === 'scoring' && (
-            <ScoringScreen
-              players={game.players}
-              gameType={game.gameType}
-              rounds={game.rounds}
-              gameStartTime={game.gameStartTime}
-              onAddRound={addRound}
-              onDeleteRound={deleteRound}
-              onBack={() => setScreen('setup')}
-              onEndGame={endGame}
-            />
-          )}
-          {screen === 'settlement' && (
-            <SettlementScreen
-              players={game.players}
-              rounds={game.rounds}
-              onBackToScoring={() => setScreen('scoring')}
-              onNewGame={newGame}
-            />
-          )}
+            {screen === 'setup' && (
+              <SetupScreen
+                initialGameType={game.gameType}
+                hasActiveGame={hasActiveGame}
+                resume={hasActiveGame
+                  ? { gameType: game.gameType, players: game.players, roundCount: game.rounds.length }
+                  : null}
+                onStart={startGame}
+                onResume={() => setScreen('scoring')}
+              />
+            )}
+            {screen === 'scoring' && (
+              <ScoringScreen
+                players={game.players}
+                gameType={game.gameType}
+                rounds={game.rounds}
+                gameStartTime={game.gameStartTime}
+                onAddRound={addRound}
+                onDeleteRound={deleteRound}
+                onBack={() => setScreen('setup')}
+                onEndGame={endGame}
+              />
+            )}
+            {screen === 'settlement' && (
+              <SettlementScreen
+                players={game.players}
+                rounds={game.rounds}
+                onBackToScoring={() => setScreen('scoring')}
+                onNewGame={newGame}
+              />
+            )}
 
-          {screen !== 'loading' && (
-            <Text style={styles.footer}>Built for game nights · © 2026 NexvanceTech</Text>
-          )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-      <Snackbar ref={snackbar} />
-    </SafeAreaView>
+            {screen !== 'loading' && (
+              <Text style={styles.footer}>Built for game nights · © 2026 NexvanceTech</Text>
+            )}
+          </ScrollView>
+        </KeyboardAvoidingView>
+        <Snackbar ref={snackbar} />
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
