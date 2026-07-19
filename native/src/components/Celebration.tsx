@@ -13,7 +13,7 @@ const PIECE_COUNT = 16;
 const DURATION_MS = 2300;
 
 interface Piece {
-  left: string;
+  left: number;
   size: number;
   char: string;
   delay: number;
@@ -23,7 +23,7 @@ interface Piece {
 
 function makePieces(): Piece[] {
   return Array.from({ length: PIECE_COUNT }, (_, i) => ({
-    left: `${Math.round(Math.random() * 96)}%`,
+    left: Math.round(Math.random() * 96),
     size: 20 + Math.random() * 18,
     char: CHARS[i % CHARS.length],
     delay: Math.random() * 350,
@@ -71,7 +71,7 @@ export function Celebration({ theme: t, winnerName, points, onDone }: Celebratio
             key={i}
             style={[
               styles.piece,
-              { left: p.left, fontSize: p.size, opacity, transform: [{ translateY }, { rotate }] },
+              { left: `${p.left}%`, fontSize: p.size, opacity, transform: [{ translateY }, { rotate }] },
             ]}
           >
             {p.char}
@@ -91,7 +91,11 @@ export function Celebration({ theme: t, winnerName, points, onDone }: Celebratio
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     zIndex: 40,
     backgroundColor: 'rgba(0,0,0,0.12)',
     alignItems: 'center',
