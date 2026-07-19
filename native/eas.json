@@ -14,7 +14,8 @@
       "ios": {
         "appName": "MahMahMia",
         "language": "en-US",
-        "sku": "mahmahmia"
+        "sku": "mahmahmia",
+        "ascAppId": "6792205049"
       }
     }
   }
