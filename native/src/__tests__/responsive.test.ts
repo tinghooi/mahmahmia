@@ -64,5 +64,7 @@ describe('scale — contract', () => {
     expect(l.scale(16)).toBe(20);
     expect(l.scale(20)).toBe(25);
     expect(l.scale(56)).toBe(70);
+    expect(l.scale(15)).toBe(19);   // 15 * 1.25 = 18.75 → 19 (rounds up)
+    expect(l.scale(12.5)).toBe(16); // 12.5 * 1.25 = 15.625 → 16 (real ScorePanel value)
   });
 });

@@ -7,7 +7,7 @@ export function AppBannerAd() {
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
   return (
-    <View style={{ alignItems: 'center', minHeight: 50 }}>
+    <View style={{ width: '100%', alignItems: 'center', minHeight: 50 }}>
       <BannerAd
         // Remount on rotation so the adaptive banner re-requests the correct
         // width — it caches a fixed pixel size from its first load otherwise.
