@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Theme } from '../theme';
 import { fontFamily } from '../fonts';
+import { useLayout } from '../responsive';
 
 export function pressKey(current: string, key: string): string {
   if (key === '⌫') return current.slice(0, -1);
@@ -19,15 +20,16 @@ export interface KeypadProps {
 }
 
 export function Keypad({ theme: t, value, onChange }: KeypadProps) {
+  const s = useLayout();
   return (
     <View style={styles.grid}>
       {KEYS.map(k => (
         <Pressable
           key={k}
           onPress={() => onChange(pressKey(value, k))}
-          style={[styles.key, { borderColor: t.line, backgroundColor: t.card }]}
+          style={[styles.key, { height: s.scale(56), borderColor: t.line, backgroundColor: t.card }]}
         >
-          <Text style={[styles.keyText, { color: t.ink, fontFamily: fontFamily.displayBold }]}>{k}</Text>
+          <Text style={[styles.keyText, { color: t.ink, fontFamily: fontFamily.displayBold, fontSize: s.scale(22) }]}>{k}</Text>
         </Pressable>
       ))}
     </View>

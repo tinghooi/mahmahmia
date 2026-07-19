@@ -4,6 +4,7 @@ import { fmt, getNetScores, getTitle, sortByScore } from '../logic/game';
 import { Round } from '../types';
 import { Theme, panelStyle } from '../theme';
 import { fontFamily } from '../fonts';
+import { useLayout } from '../responsive';
 
 interface Props {
   theme: Theme;
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function ScorePanel({ theme: t, players, rounds, showTitles, flashKey }: Props) {
+  const sz = useLayout();
   const flash = useRef(new Animated.Value(0)).current;
   const mounted = useRef(false);
 
@@ -39,20 +41,20 @@ export function ScorePanel({ theme: t, players, rounds, showTitles, flashKey }: 
   const scoreColor = (s: number) => (s > 0 ? t.green : s < 0 ? t.red : t.ink);
 
   return (
-    <Animated.View style={[panelStyle(t), styles.panel, { borderTopColor: t.gold, borderColor }]}>
+    <Animated.View style={[panelStyle(t), styles.panel, { borderTopColor: t.gold, borderColor, padding: sz.scale(16) }]}>
       {sorted.map((p, i) => {
         const s = scores[p];
         const title = getTitle(s, p === top, p === bottom);
         return (
           <View key={p} style={[styles.row, i < sorted.length - 1 && { borderBottomWidth: 1, borderBottomColor: t.line }]}>
             <View style={styles.rowTop}>
-              <Text style={[styles.name, { color: scoreColor(s), fontFamily: fontFamily.displayExtraBold }]}>{p}</Text>
-              <Text style={[styles.score, { color: scoreColor(s), fontFamily: fontFamily.displayExtraBold }]}>
+              <Text style={[styles.name, { color: scoreColor(s), fontFamily: fontFamily.displayExtraBold, fontSize: sz.scale(20) }]}>{p}</Text>
+              <Text style={[styles.score, { color: scoreColor(s), fontFamily: fontFamily.displayExtraBold, fontSize: sz.scale(22) }]}>
                 {s > 0 ? '+' : ''}{fmt(s)}
               </Text>
             </View>
             {showTitles && rounds.length > 0 && (
-              <Text style={[styles.title, { color: scoreColor(s) }]}>
+              <Text style={[styles.title, { color: scoreColor(s), fontSize: sz.scale(12.5) }]}>
                 {title.emoji} {title.text}
               </Text>
             )}

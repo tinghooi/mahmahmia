@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Theme } from '../theme';
 import { fontFamily } from '../fonts';
 import { TileIcon } from './TileIcon';
+import { useLayout } from '../responsive';
 
 export interface HeaderProps {
   theme: Theme;
@@ -13,18 +14,19 @@ export interface HeaderProps {
 }
 
 export function Header({ theme: t, dark, sound, onToggleDark, onToggleSound }: HeaderProps) {
+  const s = useLayout();
   return (
     <View style={[styles.row, { backgroundColor: t.bg, borderBottomColor: t.line }]}>
-      <TileIcon size={34} />
+      <TileIcon size={s.scale(34)} />
       <View style={styles.titles}>
-        <Text style={[styles.title, { color: t.ink, fontFamily: fontFamily.displayExtraBold }]}>MahMahMia</Text>
-        <Text style={[styles.subtitle, { color: t.mut }]}>记分 · Score Tracker</Text>
+        <Text style={[styles.title, { color: t.ink, fontFamily: fontFamily.displayExtraBold, fontSize: s.scale(19), lineHeight: s.scale(22) }]}>MahMahMia</Text>
+        <Text style={[styles.subtitle, { color: t.mut, fontSize: s.scale(11) }]}>记分 · Score Tracker</Text>
       </View>
-      <Pressable onPress={onToggleSound} style={[styles.iconBtn, { borderColor: t.line, backgroundColor: t.card }]}>
-        <Text style={styles.iconGlyph}>{sound ? '🔊' : '🔇'}</Text>
+      <Pressable onPress={onToggleSound} style={[styles.iconBtn, { borderColor: t.line, backgroundColor: t.card, width: s.scale(40), height: s.scale(40) }]}>
+        <Text style={[styles.iconGlyph, { fontSize: s.scale(16) }]}>{sound ? '🔊' : '🔇'}</Text>
       </Pressable>
-      <Pressable onPress={onToggleDark} style={[styles.iconBtn, { borderColor: t.line, backgroundColor: t.card }]}>
-        <Text style={styles.iconGlyph}>{dark ? '☀️' : '🌙'}</Text>
+      <Pressable onPress={onToggleDark} style={[styles.iconBtn, { borderColor: t.line, backgroundColor: t.card, width: s.scale(40), height: s.scale(40) }]}>
+        <Text style={[styles.iconGlyph, { fontSize: s.scale(16) }]}>{dark ? '☀️' : '🌙'}</Text>
       </Pressable>
     </View>
   );
