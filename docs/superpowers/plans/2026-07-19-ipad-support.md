@@ -103,12 +103,14 @@ describe('layoutFor — classification', () => {
   });
 });
 
-describe('scale — iPhone byte-identical invariant', () => {
-  // Frozen snapshot: every fixed size the app renders. scale() must not change
-  // any of these on iPhone (compact). If this list drifts, iPhone drifted.
-  const BASE_SIZES = [11, 12, 12.5, 13, 14, 15, 16, 17, 18, 19, 20, 22, 30, 32, 34, 40, 42, 48, 52, 56, 76, 132];
+describe('scale — contract', () => {
+  // NOTE: this proves the scale() CONTRACT (identity on phone, ×1.25 on tablet).
+  // It does NOT prove the app's individual style values are unchanged — that
+  // guarantee comes from the additive-override discipline (Global Constraints),
+  // not from this test. A representative spread of the app's base sizes:
+  const BASE_SIZES = [11, 12, 12.5, 13, 14, 15, 16, 17, 18, 19, 20, 22, 30, 32, 34, 40, 42, 44, 48, 52, 56, 76, 80, 132];
 
-  it('is identity in compact (iPhone unchanged)', () => {
+  it('is identity in compact (phone contract)', () => {
     const l = layoutFor({ width: 390, height: 844 });
     for (const b of BASE_SIZES) expect(l.scale(b)).toBe(b);
     expect(l.maxWidth).toBe(420);
@@ -399,7 +401,8 @@ git commit -m "feat(native): scale splash + make confetti fall full iPad height"
 These stay single-column; `App.tsx` (Task 8) widens the column to 640 on tablet, and these size overrides scale their contents.
 
 - [ ] **Step 1: SetupScreen** — add `const s = useLayout();` at top, then append `fontSize: s.scale(N)` to the inline style of each text/element (current value → scaled):
-  - `tabLabel` 16, `tabSub` 11, `avatarText` 18, `input` 16, `hint` 12, `startBtnText` 18, `error` 14, `resumeTitle` (append `fontSize: s.scale(15)`), `resumeDetail` 13.
+  - `tabLabel` 16, `tabSub` 11, `avatarText` 18, `input` 16, `hint` 12, `startBtnText` 18, `error` 14, `resumeDetail` 13.
+  - `resumeTitle` has **no** `fontSize` today (renders at RN's default 14). Append `fontSize: s.scale(14)` so iPhone stays exactly 14 and only tablet grows. **Do not use `s.scale(15)`** — that would change iPhone to 15 and break the byte-identical invariant.
   - avatar box: append `width: s.scale(40), height: s.scale(40)` to the avatar `View` inline style.
   - `input` minHeight: append `minHeight: s.scale(44)`.
 
@@ -434,7 +437,7 @@ The single-column path stays today's structure (just scaled). The two-column pat
 
 - [ ] **Step 1: Add the hook + scale the single-column sizes**
 
-At the top of `ScoringScreen()` add `const s = useLayout();`. Append `fontSize: s.scale(N)` (current → scaled) to the inline styles of: `ghostText` 14, `eyebrow` 12 (all instances), `shareText` 14, `selBtnText` 17, `quickText` 16, `pointsText` 30, `clearText` 19, `addBtnText` 19, `previewName` 16, `previewSub` 13, `logText` 14, `empty` 14, `deleteX` 18, `endText` 15. Scale control heights: `selBtn` append `height: s.scale(52)`; `clearBtn`/`addBtn` append `height: s.scale(56)`; `pointsDisplay` append `padding: s.scale(16)`. Leave `width: '31%'` percentages alone.
+At the top of `ScoringScreen()` add `const s = useLayout();`. Append `fontSize: s.scale(N)` (current → scaled) to the inline styles of: `ghostText` 14, `eyebrow` 12 (all instances), `shareText` 14, `selBtnText` 17, `quickText` 16, `pointsText` 30, `clearText` 19, `addBtnText` 19, `previewName` 16, `previewSub` 13, `logText` 14, `empty` 14, `deleteX` 18, `endText` 15, `error` 14, `chevron` 14. Scale control heights: `selBtn` append `height: s.scale(52)`; `clearBtn`/`addBtn` append `height: s.scale(56)`; `pointsDisplay` append `padding: s.scale(16)`. Leave `width: '31%'` percentages alone.
 
 - [ ] **Step 2: Extract inner blocks into locals**
 
@@ -519,7 +522,7 @@ git commit -m "feat(native): two-column iPad-landscape scoring layout + tablet s
 **Interfaces:**
 - Consumes: `useLayout` from `./src/responsive`.
 
-- [ ] **Step 1: Add the hook + responsive maxWidth**
+- [ ] **Step 1: Add the hook**
 
 In `App.tsx`, add `import { useLayout } from './src/responsive';`. Inside `App()`, after `const theme = getTheme(dark);` add:
 
@@ -527,13 +530,7 @@ In `App.tsx`, add `import { useLayout } from './src/responsive';`. Inside `App()
 const layout = useLayout();
 ```
 
-Change the main `ScrollView`'s `contentContainerStyle` to widen on tablet:
-
-```tsx
-contentContainerStyle={[styles.content, { maxWidth: layout.maxWidth }]}
-```
-
-Remove the hardcoded `maxWidth: 420` from `styles.content` (keep `padding`, `width: '100%'`, `alignSelf`); the value now comes from `layout.maxWidth` (420 on phone, 640 on tablet).
+Do not touch `styles.content` or the ScrollView here — the ScrollView markup is fully replaced in Step 2, and `styles.content` is edited once in Step 3.
 
 - [ ] **Step 2: Branch Scoring full-width in twoCol**
 
@@ -650,6 +647,7 @@ Follow the repo's existing dev-client flow (`native/eas.json`): `eas build --pro
   - Celebration confetti falls the full screen height and performs smoothly.
   - Real AdMob banner sits centered in the full-width bottom slot and re-fits after rotation (no stale-width clipping).
   - Carry-over device items still hold on iPad: haptics, keep-awake, sounds with mute switch, dark-mode status bar, fonts.
+  - **Dynamic Type check (spec deferral):** with iOS text size cranked up on the iPad, confirm no text clips inside the fixed-height controls (selection tiles, keypad keys, Add/Clear). If it clips, convert those `height` values to `minHeight` (iPhone unaffected — content fits 52/56 at default size) or set `maxFontSizeMultiplier`. Deferred here rather than done blind, per the spec's "prefer" framing.
 
 - [ ] **Step 3: iPhone regression** — confirm on an iPhone (or narrow pane) that the app looks identical to before (compact path unchanged).
 
@@ -663,7 +661,7 @@ Follow the repo's existing dev-client flow (`native/eas.json`): `eas build --pro
 
 **Spec coverage:**
 - Universal app / supportsTablet / iPad orientation → Task 2. ✓
-- Responsive module (thresholds, scale, useLayout) + iPhone-identical invariant + snapshot test → Task 1. ✓
+- Responsive module (thresholds, scale, useLayout) + scale-contract & boundary tests → Task 1. ✓ (Note: iPhone parity is guaranteed by the additive-override discipline, not by a per-value snapshot test — the tests prove the `scale` contract and the classifications, not every style literal.)
 - Two-column landscape Scoring; Setup/Settlement widened single column → Tasks 6, 7, 8. ✓
 - Ad remount on rotation / center / minHeight → Task 3. ✓
 - Splash scaling; Celebration confetti full-height → Task 5. ✓

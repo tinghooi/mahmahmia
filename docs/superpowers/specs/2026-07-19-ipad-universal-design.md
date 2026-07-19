@@ -32,7 +32,7 @@ New pure module `src/responsive.ts` (mirrors the repo's pattern of testable pure
 
 - `scale(base)` helper: `compact ? base : Math.round(base * 1.25)`. Applied to font sizes, control heights, tile/keypad/avatar dimensions, and panel padding. The 1.25 factor and the 700/900 thresholds are tunable during the device pass — they live in one module.
 - **Hard invariant — iPhone is byte-identical.** When `compact`, `scale(x) === x` and content width stays 420. To make this real (not just a claim about the `scale` helper), the non-compact path must be **additive overrides only**: leave every existing `StyleSheet.create` block and `panelStyle()` constant untouched, and apply scaled values inline **only when `!compact`**. So in compact mode the code executes exactly today's static styles — nothing is recomputed. This covers the many literals that would otherwise drift (`panelStyle` padding/radius/margin, `gap` values, `'31%'` widths, `letterSpacing`/`lineHeight`), which a bare `scale(x)===x` test would miss.
-- **Two tests, not one:** (a) `scale(x) === x` and width 420 in compact; (b) a snapshot asserting the full compact token set equals a frozen copy of today's literals — so any accidental change to iPhone sizes fails CI.
+- **What the tests do and don't prove:** unit tests cover the `scale` contract (identity in compact, ×1.25 on tablet) and the threshold classifications. They do **not** prove every individual style literal is unchanged — that guarantee comes from the additive-override discipline above (never editing the static styles; only appending `scale()`d inline values that equal the original in compact). The discipline is the real guard; the tests catch contract/threshold regressions.
 
 ## app.json — tablet + orientation
 
