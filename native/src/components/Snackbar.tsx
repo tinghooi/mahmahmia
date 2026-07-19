@@ -1,12 +1,16 @@
 import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text } from 'react-native';
-import { colors } from '../theme';
+import { Theme } from '../theme';
 
 export interface SnackbarHandle {
   show(fun: string, detail: string): void;
 }
 
-export const Snackbar = forwardRef<SnackbarHandle>((_props, ref) => {
+interface Props {
+  theme: Theme;
+}
+
+export const Snackbar = forwardRef<SnackbarHandle, Props>(({ theme: t }, ref) => {
   const [msg, setMsg] = useState<{ fun: string; detail: string } | null>(null);
   const opacity = useRef(new Animated.Value(0)).current;
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -30,7 +34,7 @@ export const Snackbar = forwardRef<SnackbarHandle>((_props, ref) => {
 
   if (!msg) return null;
   return (
-    <Animated.View style={[styles.bar, { opacity }]} pointerEvents="none">
+    <Animated.View style={[styles.bar, { opacity, backgroundColor: t.green }]} pointerEvents="none">
       {msg.fun ? <Text style={styles.fun}>{msg.fun}</Text> : null}
       <Text style={styles.detail}>{msg.detail}</Text>
     </Animated.View>
@@ -43,7 +47,6 @@ const styles = StyleSheet.create({
     bottom: 24,
     left: 16,
     right: 16,
-    backgroundColor: colors.green,
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
