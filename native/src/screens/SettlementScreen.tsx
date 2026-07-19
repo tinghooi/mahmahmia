@@ -5,6 +5,7 @@ import { calculateSettlement, fmt, getNetScores, settlementFlavor, sortByScore }
 import { Round } from '../types';
 import { Theme, panelStyle } from '../theme';
 import { fontFamily } from '../fonts';
+import { useLayout } from '../responsive';
 
 export interface SettlementScreenProps {
   theme: Theme;
@@ -15,6 +16,7 @@ export interface SettlementScreenProps {
 }
 
 export function SettlementScreen({ theme: t, players, rounds, onBackToScoring, onNewGame }: SettlementScreenProps) {
+  const s = useLayout();
   const scores = getNetScores(players, rounds);
   const sorted = sortByScore(players, scores);
   const transfers = calculateSettlement(scores);
@@ -25,34 +27,34 @@ export function SettlementScreen({ theme: t, players, rounds, onBackToScoring, o
   return (
     <View style={styles.wrap}>
       <View style={styles.header}>
-        <Text style={[styles.gameOver, { color: t.gold, fontFamily: fontFamily.displayExtraBold }]}>Game Over! · 收工</Text>
-        <Text style={[styles.flavor, { color: t.mut }]}>{flavor}</Text>
+        <Text style={[styles.gameOver, { color: t.gold, fontFamily: fontFamily.displayExtraBold, fontSize: s.scale(32) }]}>Game Over! · 收工</Text>
+        <Text style={[styles.flavor, { color: t.mut, fontSize: s.scale(15) }]}>{flavor}</Text>
       </View>
 
       <Text style={[styles.eyebrow, { color: t.mut }]}>FINAL SCORES · 最终得分</Text>
       <ScorePanel theme={t} players={players} rounds={rounds} showTitles={false} />
 
       <Text style={[styles.eyebrow, { color: t.mut }]}>WHO PAYS WHO · 谁付谁</Text>
-      <View style={panelStyle(t)}>
+      <View style={[panelStyle(t), { padding: s.scale(16) }]}>
         {transfers.length === 0 ? (
-          <Text style={[styles.even, { color: t.green }]}>大家打平了！</Text>
+          <Text style={[styles.even, { color: t.green, fontSize: s.scale(14) }]}>大家打平了！</Text>
         ) : (
           transfers.map((tr, i) => (
             <View key={i} style={[styles.transferRow, i < transfers.length - 1 && { borderBottomWidth: 1, borderBottomColor: t.line }]}>
-              <Text style={[styles.from, { color: t.red, fontFamily: fontFamily.displayBold }]}>{tr.from}</Text>
+              <Text style={[styles.from, { color: t.red, fontFamily: fontFamily.displayBold, fontSize: s.scale(18) }]}>{tr.from}</Text>
               <Text style={[styles.arrow, { color: t.mut }]}>→</Text>
-              <Text style={[styles.to, { color: t.green, fontFamily: fontFamily.displayBold }]}>{tr.to}</Text>
-              <Text style={[styles.amount, { color: t.ink, fontFamily: fontFamily.displayExtraBold }]}>{fmt(tr.amount)} pts</Text>
+              <Text style={[styles.to, { color: t.green, fontFamily: fontFamily.displayBold, fontSize: s.scale(18) }]}>{tr.to}</Text>
+              <Text style={[styles.amount, { color: t.ink, fontFamily: fontFamily.displayExtraBold, fontSize: s.scale(19) }]}>{fmt(tr.amount)} pts</Text>
             </View>
           ))
         )}
       </View>
 
       <Pressable style={[styles.btn, { backgroundColor: t.gold }]} onPress={onBackToScoring}>
-        <Text style={[styles.btnText, { fontFamily: fontFamily.uiBold }]}>← Back to Scoring</Text>
+        <Text style={[styles.btnText, { fontFamily: fontFamily.uiBold, fontSize: s.scale(17) }]}>← Back to Scoring</Text>
       </Pressable>
       <Pressable style={[styles.btn, { backgroundColor: t.red }]} onPress={onNewGame}>
-        <Text style={[styles.btnText, { fontFamily: fontFamily.uiBold }]}>New Game · 再来一局</Text>
+        <Text style={[styles.btnText, { fontFamily: fontFamily.uiBold, fontSize: s.scale(17) }]}>New Game · 再来一局</Text>
       </Pressable>
     </View>
   );

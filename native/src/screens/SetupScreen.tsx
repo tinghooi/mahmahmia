@@ -5,6 +5,7 @@ import {
 import { GameType } from '../types';
 import { Theme } from '../theme';
 import { fontFamily } from '../fonts';
+import { useLayout } from '../responsive';
 
 const LETTERS = ['A', 'B', 'C', 'D'];
 const CN_ORDINAL = ['一', '二', '三', '四'];
@@ -19,6 +20,7 @@ export interface SetupScreenProps {
 }
 
 export function SetupScreen({ theme: t, initialGameType, resume, hasActiveGame, onStart, onResume }: SetupScreenProps) {
+  const s = useLayout();
   const [gameType, setGameType] = useState<GameType>(initialGameType);
   const playerCount = gameType === 'mahjong' ? 3 : 4;
   const [names, setNames] = useState<string[]>(Array(playerCount).fill(''));
@@ -76,10 +78,10 @@ export function SetupScreen({ theme: t, initialGameType, resume, hasActiveGame, 
                   active && { backgroundColor: t.card, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, elevation: 2 },
                 ]}
               >
-                <Text style={[styles.tabLabel, { color: active ? t.green : t.mut, fontFamily: fontFamily.uiBold }]}>
+                <Text style={[styles.tabLabel, { color: active ? t.green : t.mut, fontFamily: fontFamily.uiBold, fontSize: s.scale(16) }]}>
                   {type === 'mahjong' ? 'Mahjong' : 'Rummy'}
                 </Text>
-                <Text style={[styles.tabSub, { color: active ? t.green : t.mut }]}>
+                <Text style={[styles.tabSub, { color: active ? t.green : t.mut, fontSize: s.scale(11) }]}>
                   {type === 'mahjong' ? '麻将 · 3 players' : '拉米 · 4 players'}
                 </Text>
               </Pressable>
@@ -93,14 +95,14 @@ export function SetupScreen({ theme: t, initialGameType, resume, hasActiveGame, 
         <View style={styles.playerList}>
           {names.map((n, i) => (
             <View key={`${gameType}-${i}`} style={[styles.playerRow, { backgroundColor: t.card, borderColor: t.line }]}>
-              <View style={[styles.avatar, { backgroundColor: t.greenT }]}>
-                <Text style={[styles.avatarText, { color: t.green, fontFamily: fontFamily.displayExtraBold }]}>
+              <View style={[styles.avatar, { backgroundColor: t.greenT, width: s.scale(40), height: s.scale(40) }]}>
+                <Text style={[styles.avatarText, { color: t.green, fontFamily: fontFamily.displayExtraBold, fontSize: s.scale(18) }]}>
                   {LETTERS[i]}
                 </Text>
               </View>
               <TextInput
                 ref={r => { inputRefs.current[i] = r; }}
-                style={[styles.input, { color: t.ink, fontFamily: fontFamily.uiSemiBold }]}
+                style={[styles.input, { color: t.ink, fontFamily: fontFamily.uiSemiBold, fontSize: s.scale(16), minHeight: s.scale(44) }]}
                 placeholder={`Player ${i + 1} · 玩家${CN_ORDINAL[i]}`}
                 placeholderTextColor={t.sub}
                 value={n}
@@ -115,22 +117,22 @@ export function SetupScreen({ theme: t, initialGameType, resume, hasActiveGame, 
             </View>
           ))}
         </View>
-        <Text style={[styles.hint, { color: t.sub }]}>Leave blank to use A · B · C · D</Text>
+        <Text style={[styles.hint, { color: t.sub, fontSize: s.scale(12) }]}>Leave blank to use A · B · C · D</Text>
       </View>
 
-      {!!error && <Text style={[styles.error, { color: t.red }]}>{error}</Text>}
+      {!!error && <Text style={[styles.error, { color: t.red, fontSize: s.scale(14) }]}>{error}</Text>}
 
       {resume && (
         <Pressable style={[styles.resumeBanner, { backgroundColor: t.greenT, borderColor: t.green }]} onPress={onResume}>
-          <Text style={[styles.resumeTitle, { color: t.ink, fontFamily: fontFamily.uiBold }]}>继续游戏 Resume</Text>
-          <Text style={[styles.resumeDetail, { color: t.mut }]}>
+          <Text style={[styles.resumeTitle, { color: t.ink, fontFamily: fontFamily.uiBold, fontSize: s.scale(14) }]}>继续游戏 Resume</Text>
+          <Text style={[styles.resumeDetail, { color: t.mut, fontSize: s.scale(13) }]}>
             {resume.gameType === 'mahjong' ? 'Mahjong' : 'Rummy'} · {resume.players.join(', ')} · {resume.roundCount} transactions
           </Text>
         </Pressable>
       )}
 
       <Pressable style={[styles.startBtn, { backgroundColor: t.green }]} onPress={start}>
-        <Text style={[styles.startBtnText, { fontFamily: fontFamily.uiBold }]}>Start Game · 开局  →</Text>
+        <Text style={[styles.startBtnText, { fontFamily: fontFamily.uiBold, fontSize: s.scale(18) }]}>Start Game · 开局  →</Text>
       </Pressable>
     </View>
   );
