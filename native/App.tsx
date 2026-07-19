@@ -21,6 +21,7 @@ import { loadInterstitial, showInterstitial } from './src/ads/interstitial';
 import { GameState, GameType } from './src/types';
 import { getTheme } from './src/theme';
 import { useAppFonts } from './src/fonts';
+import { useLayout } from './src/responsive';
 
 type Screen = 'loading' | 'splash' | 'setup' | 'scoring' | 'settlement';
 
@@ -36,6 +37,7 @@ export default function App() {
   const [sound, setSound] = useState(true);
   const snackbar = useRef<SnackbarHandle>(null);
   const theme = getTheme(dark);
+  const layout = useLayout();
 
   useEffect(() => {
     initSounds(); // fire-and-forget: play functions no-op until ready
@@ -152,47 +154,61 @@ export default function App() {
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <ScrollView
-            contentContainerStyle={styles.content}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.screenBody}>
-              {screen === 'setup' && (
-                <SetupScreen
-                  theme={theme}
-                  initialGameType={game.gameType}
-                  hasActiveGame={hasActiveGame}
-                  resume={hasActiveGame
-                    ? { gameType: game.gameType, players: game.players, roundCount: game.rounds.length }
-                    : null}
-                  onStart={startGame}
-                  onResume={() => setScreen('scoring')}
-                />
-              )}
-              {screen === 'scoring' && (
-                <ScoringScreen
-                  theme={theme}
-                  players={game.players}
-                  gameType={game.gameType}
-                  rounds={game.rounds}
-                  gameStartTime={game.gameStartTime}
-                  onAddRound={addRound}
-                  onDeleteRound={deleteRound}
-                  onBack={() => setScreen('setup')}
-                  onEndGame={endGame}
-                />
-              )}
-              {screen === 'settlement' && (
-                <SettlementScreen
-                  theme={theme}
-                  players={game.players}
-                  rounds={game.rounds}
-                  onBackToScoring={() => setScreen('scoring')}
-                  onNewGame={newGame}
-                />
-              )}
-            </View>
-          </ScrollView>
+          {screen === 'scoring' && layout.twoCol ? (
+            <ScoringScreen
+              theme={theme}
+              players={game.players}
+              gameType={game.gameType}
+              rounds={game.rounds}
+              gameStartTime={game.gameStartTime}
+              onAddRound={addRound}
+              onDeleteRound={deleteRound}
+              onBack={() => setScreen('setup')}
+              onEndGame={endGame}
+            />
+          ) : (
+            <ScrollView
+              contentContainerStyle={[styles.content, { maxWidth: layout.maxWidth }]}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.screenBody}>
+                {screen === 'setup' && (
+                  <SetupScreen
+                    theme={theme}
+                    initialGameType={game.gameType}
+                    hasActiveGame={hasActiveGame}
+                    resume={hasActiveGame
+                      ? { gameType: game.gameType, players: game.players, roundCount: game.rounds.length }
+                      : null}
+                    onStart={startGame}
+                    onResume={() => setScreen('scoring')}
+                  />
+                )}
+                {screen === 'scoring' && (
+                  <ScoringScreen
+                    theme={theme}
+                    players={game.players}
+                    gameType={game.gameType}
+                    rounds={game.rounds}
+                    gameStartTime={game.gameStartTime}
+                    onAddRound={addRound}
+                    onDeleteRound={deleteRound}
+                    onBack={() => setScreen('setup')}
+                    onEndGame={endGame}
+                  />
+                )}
+                {screen === 'settlement' && (
+                  <SettlementScreen
+                    theme={theme}
+                    players={game.players}
+                    rounds={game.rounds}
+                    onBackToScoring={() => setScreen('scoring')}
+                    onNewGame={newGame}
+                  />
+                )}
+              </View>
+            </ScrollView>
+          )}
         </KeyboardAvoidingView>
         <Snackbar theme={theme} ref={snackbar} />
       </SafeAreaView>
@@ -202,6 +218,6 @@ export default function App() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  content: { padding: 16, maxWidth: 420, width: '100%', alignSelf: 'center' },
+  content: { padding: 16, width: '100%', alignSelf: 'center' },
   screenBody: { paddingBottom: 24 },
 });
