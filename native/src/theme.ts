@@ -1,32 +1,49 @@
 import { ViewStyle } from 'react-native';
 
-export const colors = {
-  bg: '#f5f0e8',
-  text: '#3d2e1e',
-  muted: '#8a7560',
-  gold: '#c4873b',
-  green: '#2d7d46',
-  red: '#c44b3f',
-  panel: '#ffffff',
-  border: '#dddddd',
-  toggleActive: '#8b5e3c',
-  banner: '#fff8ee',
-  bannerBorder: '#e8d5b8',
-  loserBg: '#fde8e8',
-  winnerBg: '#e8f5e9',
-  faint: '#c4a882',
-  divider: '#eeeeee',
-  rowDivider: '#f0ebe3',
+export interface Theme {
+  dark: boolean;
+  bg: string;
+  card: string;
+  ink: string;
+  mut: string;
+  line: string;
+  field: string;
+  red: string;
+  redT: string;
+  green: string;
+  greenT: string;
+  gold: string;
+  sub: string;
+}
+
+const LIGHT: Theme = {
+  dark: false,
+  bg: '#F1E8DB', card: '#FFFFFF', ink: '#2B231E', mut: '#93826F', line: 'rgba(0,0,0,0.07)', field: '#FBF8F2',
+  red: '#C6412F', redT: '#F9E9E5', green: '#2E7D4F', greenT: '#E7F1EB', gold: '#BE842A', sub: '#B4A38F',
 };
 
-export const panelStyle: ViewStyle = {
-  backgroundColor: colors.panel,
-  borderRadius: 10,
-  padding: 12,
-  marginBottom: 16,
-  shadowColor: '#000',
-  shadowOpacity: 0.06,
-  shadowRadius: 3,
-  shadowOffset: { width: 0, height: 1 },
-  elevation: 1,
+const DARK: Theme = {
+  dark: true,
+  bg: '#17130F', card: '#241E18', ink: '#F3EADD', mut: '#9C8B79', line: 'rgba(255,255,255,0.09)', field: '#1C1712',
+  red: '#E67A69', redT: '#3A211C', green: '#63BE8A', greenT: '#1E2E24', gold: '#D8A64E', sub: '#7C6E60',
 };
+
+export function getTheme(isDark: boolean): Theme {
+  return isDark ? DARK : LIGHT;
+}
+
+export function panelStyle(t: Theme): ViewStyle {
+  return {
+    backgroundColor: t.card,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: t.line,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  };
+}
