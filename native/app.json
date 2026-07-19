@@ -50,6 +50,12 @@
           "androidAppId": "ca-app-pub-1429190507392497~7974424985",
           "iosAppId": "ca-app-pub-1429190507392497~8528390533"
         }
+      ],
+      [
+        "expo-tracking-transparency",
+        {
+          "userTrackingPermission": "This identifier will be used to deliver ads that are more relevant to you."
+        }
       ]
     ],
     "extra": {

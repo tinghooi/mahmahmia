@@ -6,6 +6,7 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
+import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
 import { SplashScreen } from './src/screens/SplashScreen';
 import { SetupScreen } from './src/screens/SetupScreen';
 import { ScoringScreen } from './src/screens/ScoringScreen';
@@ -38,7 +39,12 @@ export default function App() {
 
   useEffect(() => {
     initSounds(); // fire-and-forget: play functions no-op until ready
-    loadInterstitial(); // fire-and-forget: preload so an ad is ready before it's needed
+    // Apple requires this prompt before any ad SDK requests tracking data; on
+    // Android it resolves immediately with no user-facing prompt. Ads still
+    // load either way — a denial just means non-personalized ads, not no ads.
+    requestTrackingPermissionsAsync()
+      .catch(() => {})
+      .finally(() => loadInterstitial());
     (async () => {
       const [saved, prefs] = await Promise.all([restoreState(), restorePrefs()]);
       setDark(prefs.dark);
