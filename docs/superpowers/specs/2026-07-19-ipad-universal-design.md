@@ -31,14 +31,15 @@ New pure module `src/responsive.ts` (mirrors the repo's pattern of testable pure
 | `twoCol` | `width >= 900 && isLandscape` | Scoring renders two columns, full-width frame |
 
 - `scale(base)` helper: `compact ? base : Math.round(base * 1.25)`. Applied to font sizes, control heights, tile/keypad/avatar dimensions, and panel padding. The 1.25 factor and the 700/900 thresholds are tunable during the device pass — they live in one module.
-- **Hard invariant:** when `compact` is true, `scale(x) === x` and content width stays 420 — so iPhone is untouched. Covered by a unit test asserting the compact tokens equal the current literals.
-- Because static `StyleSheet.create` can't read runtime sizes, size-sensitive values move to inline styles (or a small `useMemo` style factory keyed on layout) applied **alongside** the existing inline-theme-color pattern. Color-from-theme styling stays exactly as today.
+- **Hard invariant — iPhone is byte-identical.** When `compact`, `scale(x) === x` and content width stays 420. To make this real (not just a claim about the `scale` helper), the non-compact path must be **additive overrides only**: leave every existing `StyleSheet.create` block and `panelStyle()` constant untouched, and apply scaled values inline **only when `!compact`**. So in compact mode the code executes exactly today's static styles — nothing is recomputed. This covers the many literals that would otherwise drift (`panelStyle` padding/radius/margin, `gap` values, `'31%'` widths, `letterSpacing`/`lineHeight`), which a bare `scale(x)===x` test would miss.
+- **Two tests, not one:** (a) `scale(x) === x` and width 420 in compact; (b) a snapshot asserting the full compact token set equals a frozen copy of today's literals — so any accidental change to iPhone sizes fails CI.
 
 ## app.json — tablet + orientation
 
 - `ios.supportsTablet: true`.
 - Keep the global `"orientation": "portrait"` (this is what keeps **iPhone and Android portrait-locked** — unchanged).
-- Add `ios.infoPlist["UISupportedInterfaceOrientations~ipad"]` = all four orientations. iOS applies the `~ipad` variant only to iPad, so **iPad rotates freely while iPhone stays portrait**. Android is unaffected.
+- Add **only** `ios.infoPlist["UISupportedInterfaceOrientations~ipad"]` = all four orientations. iOS applies the `~ipad` variant only to iPad, so **iPad rotates freely while iPhone stays portrait**. Android is unaffected.
+- **Do not add the base `UISupportedInterfaceOrientations` key.** Verified against the installed `@expo/config-plugins@57.0.5`: `orientation: portrait` writes the base key and its guard skips (with a warning) if the base key already exists in `infoPlist` — so adding the base key would silently stop portrait-locking iPhone. The `~ipad` variant survives untouched, which is exactly what we want. (Orientation trick confirmed correct for SDK 57 by the reviewer.)
 - **Do not force full-screen** (no `UIRequiresFullScreen`). The width-driven layout already adapts to any pane size, so Split View / Stage Manager work for free and we avoid fighting modern iPadOS resizability expectations.
 - Suggest bumping app `version` to `1.1.0` (feature release).
 
@@ -51,17 +52,27 @@ New pure module `src/responsive.ts` (mirrors the repo's pattern of testable pure
   - A `flexDirection: 'row'` fills the remaining height with two columns, each its own independently-scrolling `ScrollView`:
     - **Left (~42%):** Standings header + `ScorePanel` + round Log.
     - **Right (~58%):** entry panel — who pays / who gets / quick chips / points display / `Keypad` / Add — plus the win preview and the "End Game — Settle Up" button.
-  - The ad banner spans **full width, pinned along the bottom**, below the columns.
-  - Log may default **open** in this layout (there's vertical room); optional nicety, not required.
-- To support the full-width frame, `App.tsx` renders Scoring **outside** the centered `maxWidth` ScrollView when `twoCol` (full-width container, screen owns its own scrolling). All other cases keep the existing single centered ScrollView with a responsive `maxWidth` (420 → 640).
+  - The ad banner spans **full width, pinned along the bottom**, below the columns — it must sit in the screen-level bottom slot, **not inside a scrolling column** (today `AppBannerAd` is the last item in Scoring's vertical stack; in `twoCol` it moves out of the stack).
+  - Log stays **collapsed by default** here too (same as phone). Rationale: iPad mini in full-screen landscape (1133×744) is `twoCol` but short on height once header + ad are subtracted, so a default-open log would crowd it. No behavior divergence from phone.
+- To support the full-width frame, `App.tsx` must **branch before the outer ScrollView**: in `twoCol` it renders Scoring as a `flex: 1` child of `KeyboardAvoidingView` (full-width, screen owns its own two-column scrolling), **not** inside the centered `maxWidth` ScrollView. This avoids nesting two vertical ScrollViews inside the outer one (which triggers "VirtualizedLists should never be nested" and broken scroll). All other cases keep the existing single centered ScrollView with a responsive `maxWidth` (420 → 640).
 
 **Setup** and **Settlement** — widened **centered single column** on iPad in both orientations (`maxWidth 640`, scaled sizes). They're short (a name form; a final-scores + who-pays-who list); two columns would leave awkward gaps. *If Settlement looks empty in iPad landscape on-device, we mirror the two-column split there too — deferred to the device pass, not built up front.*
 
 **Splash / intro** (`SplashScreen.tsx`) — centered flex layout; scale the logo and typography up on tablet via the same helper. Native splash (`expo-splash-screen`, `resizeMode: contain`) already scales fine.
 
+**Celebration overlay** (`Celebration.tsx`) — the confetti fall distance is a hardcoded `outputRange: [-40, 860]` and the center glyphs are fixed sizes, so on a 1024–1366pt-tall iPad the confetti stops mid-screen. Scale the fall distance and center glyphs by layout (drive the fall distance off screen height).
+
+**Control sizing note** — several controls use a fixed `height` (selection tiles 52, keypad keys 56, Add/Clear 56). Combined with the 1.25 scale and iOS Dynamic Type, fixed heights can clip text. Prefer `minHeight` over `height` where text sits inside, or cap with `maxFontSizeMultiplier`. Applies on tablet only; iPhone (compact) keeps today's exact values per the byte-identical invariant.
+
 ## Ads on tablet
 
-Keep the existing anchored **adaptive** banner — it auto-sizes to the container width, returning a larger (leaderboard-class) banner on iPad. In `twoCol` it must sit full-width at the bottom, not inside a column. No SDK/config change expected; **verify real fill on the physical iPad** (creative renders, height reserved, no layout jump).
+The banner needs explicit handling — the reviewer verified against the installed `react-native-google-mobile-ads@16` source that our assumption was wrong. The adaptive banner computes a **fixed pixel size once** from the screen width at load time (from the native `onAdLoaded` event); it does **not** re-fit to its container and does **not** re-request when the window changes. So on the in-scope "rotate mid-game" flow, a banner loaded in landscape (~1024×90) keeps that stale wide box after rotating to portrait (~820pt) → horizontal overflow/clipping, and never re-fetches the portrait size.
+
+Required handling (no SDK/config change, just how we mount it):
+- **Remount on orientation change:** give the banner a `key` that flips with orientation (e.g. `key={isLandscape ? 'land' : 'port'}`) so it re-requests the correct current-orientation adaptive size.
+- **Center in a full-width slot:** wrap it in a full-width `View` with `alignItems: 'center'`. The creative is a fixed-width leaderboard-class box (not truly edge-to-edge), so center it in the full-width bottom slot rather than expecting it to fill.
+- **Reserve height** (`minHeight` ~50–90) so the `[0,0]→loaded` transition doesn't jump the layout.
+- **Verify real fill on the physical iPad** (creative renders, height reserved, no jump, re-fits after rotation).
 
 ## Store submission
 
@@ -72,15 +83,17 @@ Keep the existing anchored **adaptive** banner — it auto-sizes to the containe
 
 ## Testing / verification
 
-- **Unit test** `src/responsive.ts`: threshold boundaries (699/700, 899/900, portrait vs landscape) and the **compact-equals-today invariant** (`scale(x) === x`, width 420 in compact).
+- **Unit tests** `src/responsive.ts`: threshold boundaries (699/700, 899/900, portrait vs landscape); the **compact-equals-today invariant** (`scale(x) === x`, width 420 in compact); and the **frozen compact-token snapshot** (full compact size set equals today's literals, so any iPhone drift fails CI).
+- **State survives rotation for free** — layout is derived purely from `useWindowDimensions()` and game state already lives in `App.tsx` + AsyncStorage, so rotation just re-renders. No extra work; confirm on-device (no state loss on rotate).
+- **Safe area** — `edges={['top','bottom']}` is correct on iPad (no side notch → zero left/right insets in landscape); no change needed, just confirm in the device pass.
 - **iPhone regression:** existing 41 unit tests stay green, `tsc --noEmit` clean, and compact-mode values proven identical to current literals so iPhone is unchanged.
 - **Physical iPad device pass** (the real proof — no simulator on this Mac):
   - Portrait and landscape on all three screens; the Scoring two-column layout in landscape.
   - Rotate mid-game → no state loss, columns reflow, keypad usable.
   - Drag into Split View / narrow pane → falls back cleanly to the single-column layout.
   - Keypad, selection tiles, and tap targets are comfortably sized (not tiny, not absurdly huge).
-  - Celebration/confetti overlay scales and performs.
-  - Real AdMob banner fills full-width at the bottom.
+  - Celebration/confetti overlay scales (confetti falls the full height) and performs.
+  - Real AdMob banner sits centered in the full-width bottom slot and **re-fits after rotation** (no stale-width clipping).
 - Carry forward all pre-existing device-pass items (haptics, keep-awake, sounds/mute, dark-mode status bar, fonts) on iPad too.
 
 ## Out of scope
