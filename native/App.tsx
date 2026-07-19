@@ -6,6 +6,7 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as Haptics from 'expo-haptics';
+import { useAppFonts } from './src/fonts';
 import { SetupScreen } from './src/screens/SetupScreen';
 import { ScoringScreen } from './src/screens/ScoringScreen';
 import { SettlementScreen } from './src/screens/SettlementScreen';
@@ -26,6 +27,7 @@ const FRESH: GameState = {
 };
 
 export default function App() {
+  const fontsLoaded = useAppFonts();
   const [game, setGame] = useState<GameState>(FRESH);
   const [screen, setScreen] = useState<Screen>('loading');
   const snackbar = useRef<SnackbarHandle>(null);
@@ -97,6 +99,8 @@ export default function App() {
   }, []);
 
   const hasActiveGame = game.rounds.length > 0 && game.players.length > 0;
+
+  if (!fontsLoaded) return null;
 
   return (
     <SafeAreaProvider>
