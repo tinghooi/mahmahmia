@@ -3,6 +3,7 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { Theme } from '../theme';
 import { fontFamily } from '../fonts';
 import { fmt } from '../logic/game';
+import { useLayout } from '../responsive';
 
 export function isBigWin(points: number, threshold = 3000): boolean {
   return points >= threshold;
@@ -40,6 +41,7 @@ export interface CelebrationProps {
 }
 
 export function Celebration({ theme: t, winnerName, points, onDone }: CelebrationProps) {
+  const s = useLayout();
   const pieces = useRef(makePieces()).current;
   const pop = useRef(new Animated.Value(0)).current;
 
@@ -63,7 +65,7 @@ export function Celebration({ theme: t, winnerName, points, onDone }: Celebratio
   return (
     <View style={styles.overlay} pointerEvents="none">
       {pieces.map((p, i) => {
-        const translateY = p.fall.interpolate({ inputRange: [0, 1], outputRange: [-40, 860] });
+        const translateY = p.fall.interpolate({ inputRange: [0, 1], outputRange: [-40, s.height + 80] });
         const rotate = p.fall.interpolate({ inputRange: [0, 1], outputRange: ['0deg', `${p.rotate}deg`] });
         const opacity = p.fall.interpolate({ inputRange: [0, 0.08, 1], outputRange: [0, 1, 0] });
         return (
@@ -79,9 +81,9 @@ export function Celebration({ theme: t, winnerName, points, onDone }: Celebratio
         );
       })}
       <Animated.View style={[styles.center, { transform: [{ scale: pop }], opacity: pop }]}>
-        <Text style={styles.emoji}>🤑</Text>
-        <Text style={[styles.text, { color: t.gold, fontFamily: fontFamily.cjkBlack }]}>赢麻了!</Text>
-        <Text style={[styles.sub, { fontFamily: fontFamily.displayExtraBold }]}>
+        <Text style={[styles.emoji, { fontSize: s.scale(76), lineHeight: s.scale(80) }]}>🤑</Text>
+        <Text style={[styles.text, { color: t.gold, fontFamily: fontFamily.cjkBlack, fontSize: s.scale(48) }]}>赢麻了!</Text>
+        <Text style={[styles.sub, { fontFamily: fontFamily.displayExtraBold, fontSize: s.scale(20) }]}>
           {winnerName} +{fmt(points)}
         </Text>
       </Animated.View>

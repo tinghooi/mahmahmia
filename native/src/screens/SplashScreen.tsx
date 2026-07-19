@@ -3,6 +3,7 @@ import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-nativ
 import { Theme } from '../theme';
 import { fontFamily } from '../fonts';
 import { TileIcon } from '../components/TileIcon';
+import { useLayout } from '../responsive';
 
 export interface SplashScreenProps {
   theme: Theme;
@@ -10,6 +11,7 @@ export interface SplashScreenProps {
 }
 
 export function SplashScreen({ theme: t, onStart }: SplashScreenProps) {
+  const s = useLayout();
   const glow = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -28,18 +30,18 @@ export function SplashScreen({ theme: t, onStart }: SplashScreenProps) {
   return (
     <View style={[styles.wrap, { backgroundColor: t.bg }]}>
       <Animated.View style={{ transform: [{ scale }] }}>
-        <TileIcon size={132} />
+        <TileIcon size={s.scale(132)} />
       </Animated.View>
       <View style={styles.titleBlock}>
-        <Text style={[styles.title, { color: t.ink, fontFamily: fontFamily.displayExtraBold }]}>MahMahMia</Text>
-        <Text style={[styles.subtitle, { color: t.mut }]}>记分神器 · Game-night score tracker</Text>
+        <Text style={[styles.title, { color: t.ink, fontFamily: fontFamily.displayExtraBold, fontSize: s.scale(42) }]}>MahMahMia</Text>
+        <Text style={[styles.subtitle, { color: t.mut, fontSize: s.scale(15) }]}>记分神器 · Game-night score tracker</Text>
       </View>
       <View style={styles.tags}>
-        <Text style={[styles.tag, { color: t.gold, backgroundColor: t.field, borderColor: t.line }]}>麻将 Mahjong</Text>
-        <Text style={[styles.tag, { color: t.gold, backgroundColor: t.field, borderColor: t.line }]}>拉米 Rummy</Text>
+        <Text style={[styles.tag, { color: t.gold, backgroundColor: t.field, borderColor: t.line, fontSize: s.scale(12) }]}>麻将 Mahjong</Text>
+        <Text style={[styles.tag, { color: t.gold, backgroundColor: t.field, borderColor: t.line, fontSize: s.scale(12) }]}>拉米 Rummy</Text>
       </View>
       <Pressable onPress={onStart} style={[styles.startBtn, { backgroundColor: t.green }]}>
-        <Text style={[styles.startText, { fontFamily: fontFamily.uiBold }]}>开局 · Start  →</Text>
+        <Text style={[styles.startText, { fontFamily: fontFamily.uiBold, fontSize: s.scale(18) }]}>开局 · Start  →</Text>
       </Pressable>
       <Text style={[styles.footer, { color: t.sub }]}>Built for game nights · © 2026 NexvanceTech</Text>
     </View>
