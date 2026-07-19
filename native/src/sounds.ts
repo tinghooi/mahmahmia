@@ -2,6 +2,16 @@ import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 
 let players: { coin: AudioPlayer; settle: AudioPlayer; del: AudioPlayer } | null = null;
 
+let soundEnabled = true;
+
+export function setSoundEnabled(v: boolean): void {
+  soundEnabled = v;
+}
+
+export function isSoundEnabled(): boolean {
+  return soundEnabled;
+}
+
 export async function initSounds(): Promise<void> {
   try {
     await setAudioModeAsync({ playsInSilentMode: true });
@@ -16,7 +26,7 @@ export async function initSounds(): Promise<void> {
 }
 
 function play(p: AudioPlayer | undefined): void {
-  if (!p) return;
+  if (!p || !soundEnabled) return;
   try {
     p.seekTo(0);
     p.play();

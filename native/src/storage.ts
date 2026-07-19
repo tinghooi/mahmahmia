@@ -4,6 +4,7 @@ import { GameState } from './types';
 
 const STATE_KEY = 'mahmahmia-state';
 const CID_KEY = 'mamamia_cid';
+const PREFS_KEY = 'mahmahmia-prefs';
 
 export async function saveState(state: GameState): Promise<void> {
   try {
@@ -52,5 +53,35 @@ export async function getClientId(): Promise<string> {
   } catch (e) {
     console.error('getClientId failed', e);
     return Crypto.randomUUID();
+  }
+}
+
+export interface Prefs {
+  dark: boolean;
+  sound: boolean;
+}
+
+const DEFAULT_PREFS: Prefs = { dark: false, sound: true };
+
+export async function savePrefs(prefs: Prefs): Promise<void> {
+  try {
+    await AsyncStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+  } catch (e) {
+    console.error('savePrefs failed', e);
+  }
+}
+
+export async function restorePrefs(): Promise<Prefs> {
+  try {
+    const raw = await AsyncStorage.getItem(PREFS_KEY);
+    if (!raw) return DEFAULT_PREFS;
+    const p = JSON.parse(raw);
+    return {
+      dark: typeof p.dark === 'boolean' ? p.dark : DEFAULT_PREFS.dark,
+      sound: typeof p.sound === 'boolean' ? p.sound : DEFAULT_PREFS.sound,
+    };
+  } catch (e) {
+    console.error('restorePrefs failed', e);
+    return DEFAULT_PREFS;
   }
 }

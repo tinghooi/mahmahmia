@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { saveState, restoreState, clearState, getClientId } from '../storage';
+import { saveState, restoreState, clearState, getClientId, savePrefs, restorePrefs } from '../storage';
 import { GameState } from '../types';
 
 jest.mock('expo-crypto', () => ({ randomUUID: () => 'test-uuid-1234' }));
@@ -63,5 +63,22 @@ describe('storage', () => {
     jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.spyOn(AsyncStorage, 'getItem').mockRejectedValueOnce(new Error('disk full'));
     expect(await getClientId()).toBe('test-uuid-1234');
+  });
+});
+
+describe('prefs', () => {
+  it('returns defaults when nothing saved', async () => {
+    expect(await restorePrefs()).toEqual({ dark: false, sound: true });
+  });
+
+  it('round-trips saved prefs', async () => {
+    await savePrefs({ dark: true, sound: false });
+    expect(await restorePrefs()).toEqual({ dark: true, sound: false });
+  });
+
+  it('falls back to defaults on corrupt JSON', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    await AsyncStorage.setItem('mahmahmia-prefs', '{not json');
+    expect(await restorePrefs()).toEqual({ dark: false, sound: true });
   });
 });
