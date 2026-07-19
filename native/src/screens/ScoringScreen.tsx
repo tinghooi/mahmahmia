@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Alert, Pressable, Share, StyleSheet, Text, View,
+  Alert, Pressable, ScrollView, Share, StyleSheet, Text, View,
 } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import { ScorePanel } from '../components/ScorePanel';
@@ -12,6 +12,7 @@ import { trackFeature } from '../analytics';
 import { GameType, Round } from '../types';
 import { Theme, panelStyle } from '../theme';
 import { fontFamily } from '../fonts';
+import { useLayout } from '../responsive';
 
 export interface ScoringScreenProps {
   theme: Theme;
@@ -29,6 +30,7 @@ export function ScoringScreen({
   theme: t, players, gameType, rounds, gameStartTime,
   onAddRound, onDeleteRound, onBack, onEndGame,
 }: ScoringScreenProps) {
+  const s = useLayout();
   useKeepAwake();
   const [loser, setLoser] = useState<string | null>(null);
   const [winner, setWinner] = useState<string | null>(null);
@@ -84,131 +86,139 @@ export function ScoringScreen({
 
   const quickAmounts = getRecentAmounts(rounds);
 
-  return (
-    <View style={[styles.wrap, { backgroundColor: t.bg }]}>
-      <Pressable onPress={onBack} style={styles.ghostBtn}>
-        <Text style={[styles.ghostText, { color: t.gold, fontFamily: fontFamily.uiSemiBold }]}>← Back to Setup</Text>
-      </Pressable>
+  const backButton = (
+    <Pressable onPress={onBack} style={styles.ghostBtn}>
+      <Text style={[styles.ghostText, { color: t.gold, fontFamily: fontFamily.uiSemiBold, fontSize: s.scale(14) }]}>← Back to Setup</Text>
+    </Pressable>
+  );
 
+  const standingsBlock = (
+    <>
       <View style={styles.standingsHeader}>
-        <Text style={[styles.eyebrow, { color: t.mut }]}>STANDINGS · 排名</Text>
+        <Text style={[styles.eyebrow, { color: t.mut, fontSize: s.scale(12) }]}>STANDINGS · 排名</Text>
         {rounds.length > 0 && (
           <Pressable onPress={share} style={[styles.shareBtn, { backgroundColor: t.field, borderColor: t.line }]}>
-            <Text style={[styles.shareText, { color: t.mut }]}>↗ Share</Text>
+            <Text style={[styles.shareText, { color: t.mut, fontSize: s.scale(14) }]}>↗ Share</Text>
           </Pressable>
         )}
       </View>
       <ScorePanel theme={t} players={players} rounds={rounds} showTitles flashKey={rounds.length} />
+    </>
+  );
 
-      <View style={panelStyle(t)}>
-        <Text style={[styles.eyebrow, { color: t.mut }]}>WHO PAYS? · 谁付</Text>
-        <View style={styles.grid3}>
-          {players.map(p => (
-            <Pressable
-              key={`l-${p}`}
-              onPress={() => selectLoser(p)}
-              style={[
-                styles.selBtn,
-                { borderColor: t.line, backgroundColor: t.card },
-                loser === p && { borderColor: t.red, backgroundColor: t.redT },
-              ]}
-            >
-              <Text style={[styles.selBtnText, { color: loser === p ? t.red : t.ink, fontFamily: fontFamily.displayBold }]}>{p}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        <Text style={[styles.eyebrow, { color: t.mut, marginTop: 14 }]}>WHO GETS? · 谁收</Text>
-        <View style={styles.grid3}>
-          {players.map(p => (
-            <Pressable
-              key={`w-${p}`}
-              onPress={() => selectWinner(p)}
-              disabled={p === loser}
-              style={[
-                styles.selBtn,
-                { borderColor: t.line, backgroundColor: t.card },
-                winner === p && { borderColor: t.green, backgroundColor: t.greenT },
-                p === loser && { opacity: 0.35 },
-              ]}
-            >
-              <Text style={[styles.selBtnText, { color: winner === p ? t.green : t.ink, fontFamily: fontFamily.displayBold }]}>{p}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {quickAmounts.length > 0 && (
-          <>
-            <Text style={[styles.eyebrow, { color: t.mut, marginTop: 14 }]}>QUICK · 快捷</Text>
-            <View style={styles.grid3}>
-              {quickAmounts.map(a => (
-                <Pressable
-                  key={a}
-                  onPress={() => { trackFeature('quick_amount'); setPoints(String(a)); }}
-                  style={[styles.quickChip, { backgroundColor: t.field, borderColor: t.line }]}
-                >
-                  <Text style={[styles.quickText, { color: t.gold, fontFamily: fontFamily.uiBold }]}>{a}</Text>
-                </Pressable>
-              ))}
-            </View>
-          </>
-        )}
-
-        <Text style={[styles.eyebrow, { color: t.mut, marginTop: 14 }]}>POINTS · 点数</Text>
-        <View style={[styles.pointsDisplay, { backgroundColor: t.field, borderColor: t.line }]}>
-          <Text style={[styles.pointsText, { color: points ? t.ink : t.sub, fontFamily: fontFamily.displayExtraBold }]}>
-            {points === '' ? '0' : points}
-          </Text>
-        </View>
-        <View style={styles.keypadRow}>
-          <Keypad theme={t} value={points} onChange={setPoints} />
-        </View>
-        <View style={styles.entryActions}>
-          <Pressable onPress={() => setPoints('')} style={[styles.clearBtn, { borderColor: t.line, backgroundColor: t.card }]}>
-            <Text style={[styles.clearText, { color: t.red }]}>C</Text>
-          </Pressable>
+  const entryBlock = (
+    <View style={panelStyle(t)}>
+      <Text style={[styles.eyebrow, { color: t.mut, fontSize: s.scale(12) }]}>WHO PAYS? · 谁付</Text>
+      <View style={styles.grid3}>
+        {players.map(p => (
           <Pressable
-            onPress={add}
-            disabled={!valid}
-            style={[styles.addBtn, { backgroundColor: valid ? t.green : t.mut, opacity: valid ? 1 : 0.55 }]}
+            key={`l-${p}`}
+            onPress={() => selectLoser(p)}
+            style={[
+              styles.selBtn,
+              { borderColor: t.line, backgroundColor: t.card, height: s.scale(52) },
+              loser === p && { borderColor: t.red, backgroundColor: t.redT },
+            ]}
           >
-            <Text style={[styles.addBtnText, { fontFamily: fontFamily.uiExtraBold }]}>Add · 记一笔</Text>
+            <Text style={[styles.selBtnText, { color: loser === p ? t.red : t.ink, fontFamily: fontFamily.displayBold, fontSize: s.scale(17) }]}>{p}</Text>
           </Pressable>
-        </View>
-        {!!error && <Text style={[styles.error, { color: t.red }]}>{error}</Text>}
+        ))}
       </View>
 
-      {valid && (
-        <View style={[styles.preview, { backgroundColor: t.green }]}>
-          <Text style={[styles.previewName, { fontFamily: fontFamily.uiExtraBold }]}>{winner} 发财啦!</Text>
-          <Text style={styles.previewSub}>{loser} → {winner} · {fmt(pts)} pts</Text>
-        </View>
+      <Text style={[styles.eyebrow, { color: t.mut, marginTop: 14, fontSize: s.scale(12) }]}>WHO GETS? · 谁收</Text>
+      <View style={styles.grid3}>
+        {players.map(p => (
+          <Pressable
+            key={`w-${p}`}
+            onPress={() => selectWinner(p)}
+            disabled={p === loser}
+            style={[
+              styles.selBtn,
+              { borderColor: t.line, backgroundColor: t.card, height: s.scale(52) },
+              winner === p && { borderColor: t.green, backgroundColor: t.greenT },
+              p === loser && { opacity: 0.35 },
+            ]}
+          >
+            <Text style={[styles.selBtnText, { color: winner === p ? t.green : t.ink, fontFamily: fontFamily.displayBold, fontSize: s.scale(17) }]}>{p}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {quickAmounts.length > 0 && (
+        <>
+          <Text style={[styles.eyebrow, { color: t.mut, marginTop: 14, fontSize: s.scale(12) }]}>QUICK · 快捷</Text>
+          <View style={styles.grid3}>
+            {quickAmounts.map(a => (
+              <Pressable
+                key={a}
+                onPress={() => { trackFeature('quick_amount'); setPoints(String(a)); }}
+                style={[styles.quickChip, { backgroundColor: t.field, borderColor: t.line }]}
+              >
+                <Text style={[styles.quickText, { color: t.gold, fontFamily: fontFamily.uiBold, fontSize: s.scale(16) }]}>{a}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </>
       )}
 
+      <Text style={[styles.eyebrow, { color: t.mut, marginTop: 14, fontSize: s.scale(12) }]}>POINTS · 点数</Text>
+      <View style={[styles.pointsDisplay, { backgroundColor: t.field, borderColor: t.line, padding: s.scale(16) }]}>
+        <Text style={[styles.pointsText, { color: points ? t.ink : t.sub, fontFamily: fontFamily.displayExtraBold, fontSize: s.scale(30) }]}>
+          {points === '' ? '0' : points}
+        </Text>
+      </View>
+      <View style={styles.keypadRow}>
+        <Keypad theme={t} value={points} onChange={setPoints} />
+      </View>
+      <View style={styles.entryActions}>
+        <Pressable onPress={() => setPoints('')} style={[styles.clearBtn, { borderColor: t.line, backgroundColor: t.card, height: s.scale(56) }]}>
+          <Text style={[styles.clearText, { color: t.red, fontSize: s.scale(19) }]}>C</Text>
+        </Pressable>
+        <Pressable
+          onPress={add}
+          disabled={!valid}
+          style={[styles.addBtn, { backgroundColor: valid ? t.green : t.mut, opacity: valid ? 1 : 0.55, height: s.scale(56) }]}
+        >
+          <Text style={[styles.addBtnText, { fontFamily: fontFamily.uiExtraBold, fontSize: s.scale(19) }]}>Add · 记一笔</Text>
+        </Pressable>
+      </View>
+      {!!error && <Text style={[styles.error, { color: t.red, fontSize: s.scale(14) }]}>{error}</Text>}
+    </View>
+  );
+
+  const previewBlock = valid ? (
+    <View style={[styles.preview, { backgroundColor: t.green }]}>
+      <Text style={[styles.previewName, { fontFamily: fontFamily.uiExtraBold, fontSize: s.scale(16) }]}>{winner} 发财啦!</Text>
+      <Text style={[styles.previewSub, { fontSize: s.scale(13) }]}>{loser} → {winner} · {fmt(pts)} pts</Text>
+    </View>
+  ) : null;
+
+  const logBlock = (
+    <>
       <Pressable
         onPress={() => { trackFeature('log_view'); setLogOpen(o => !o); }}
         style={styles.logHeader}
       >
-        <Text style={[styles.eyebrow, { color: t.mut, marginBottom: 0 }]}>LOG · 记录 ({rounds.length})</Text>
-        <Text style={[styles.chevron, { color: t.mut }, logOpen && { transform: [{ rotate: '180deg' }] }]}>▾</Text>
+        <Text style={[styles.eyebrow, { color: t.mut, marginBottom: 0, fontSize: s.scale(12) }]}>LOG · 记录 ({rounds.length})</Text>
+        <Text style={[styles.chevron, { color: t.mut, fontSize: s.scale(14) }, logOpen && { transform: [{ rotate: '180deg' }] }]}>▾</Text>
       </Pressable>
       {logOpen && (
         <View style={[styles.logCard, { backgroundColor: t.card, borderColor: t.line }]}>
           {rounds.length === 0 ? (
-            <Text style={[styles.empty, { color: t.sub }]}>No entries yet · 还没有记录</Text>
+            <Text style={[styles.empty, { color: t.sub, fontSize: s.scale(14) }]}>No entries yet · 还没有记录</Text>
           ) : (
             rounds.slice().reverse().map((r, i) => {
               const index = rounds.length - 1 - i;
               return (
                 <View key={index} style={[styles.logRow, { borderBottomColor: t.line }]}>
-                  <Text style={[styles.logText, { color: t.ink }]}>
+                  <Text style={[styles.logText, { color: t.ink, fontSize: s.scale(14) }]}>
                     #{index + 1}: {r.loser} → {r.winner}: {fmt(r.points)} pts
                   </Text>
                   <Pressable
                     onPress={() => { trackFeature('undo'); onDeleteRound(index); }}
                     hitSlop={8}
                   >
-                    <Text style={[styles.deleteX, { color: t.red }]}>✕</Text>
+                    <Text style={[styles.deleteX, { color: t.red, fontSize: s.scale(18) }]}>✕</Text>
                   </Pressable>
                 </View>
               );
@@ -216,21 +226,61 @@ export function ScoringScreen({
           )}
         </View>
       )}
+    </>
+  );
 
-      <Pressable onPress={confirmEnd} style={styles.endBtn}>
-        <Text style={[styles.endText, { color: t.red, fontFamily: fontFamily.uiBold }]}>End Game — Settle Up · 结算</Text>
-      </Pressable>
+  const endButton = (
+    <Pressable onPress={confirmEnd} style={styles.endBtn}>
+      <Text style={[styles.endText, { color: t.red, fontFamily: fontFamily.uiBold, fontSize: s.scale(15) }]}>End Game — Settle Up · 结算</Text>
+    </Pressable>
+  );
 
+  const celebrationOverlay = celebration ? (
+    <Celebration
+      theme={t}
+      winnerName={celebration.name}
+      points={celebration.points}
+      onDone={() => setCelebration(null)}
+    />
+  ) : null;
+
+  if (s.twoCol) {
+    return (
+      <View style={{ flex: 1, backgroundColor: t.bg }}>
+        <View style={{ paddingHorizontal: 16, paddingTop: 8 }}>{backButton}</View>
+        <View style={{ flex: 1, flexDirection: 'row', gap: 16, paddingHorizontal: 16 }}>
+          <ScrollView style={{ flex: 42 }} contentContainerStyle={{ gap: 18, paddingBottom: 16 }}>
+            {standingsBlock}
+            {logBlock}
+          </ScrollView>
+          <ScrollView
+            style={{ flex: 58 }}
+            contentContainerStyle={{ gap: 18, paddingBottom: 16 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {entryBlock}
+            {previewBlock}
+            {endButton}
+          </ScrollView>
+        </View>
+        <View style={{ paddingBottom: 4 }}>
+          <AppBannerAd />
+        </View>
+        {celebrationOverlay}
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.wrap, { backgroundColor: t.bg }]}>
+      {backButton}
+      {standingsBlock}
+      {entryBlock}
+      {previewBlock}
+      {logBlock}
+      {endButton}
       <AppBannerAd />
-
-      {celebration && (
-        <Celebration
-          theme={t}
-          winnerName={celebration.name}
-          points={celebration.points}
-          onDone={() => setCelebration(null)}
-        />
-      )}
+      {celebrationOverlay}
     </View>
   );
 }
