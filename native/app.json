@@ -43,7 +43,14 @@
           "recordAudioAndroid": false
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-1429190507392497~7974424985",
+          "iosAppId": "ca-app-pub-1429190507392497~8528390533"
+        }
+      ]
     ],
     "extra": {
       "eas": {

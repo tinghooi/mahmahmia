@@ -14,6 +14,8 @@ import { funToast, fmt } from './src/logic/game';
 import { saveState, restoreState, clearState } from './src/storage';
 import { logGameEnd, resetFeatures } from './src/analytics';
 import { initSounds, soundCoin, soundDelete, soundSettle } from './src/sounds';
+import { loadInterstitial, showInterstitial } from './src/ads/interstitial';
+import { AppBannerAd } from './src/ads/AppBannerAd';
 import { GameState, GameType } from './src/types';
 import { colors } from './src/theme';
 
@@ -31,6 +33,7 @@ export default function App() {
   // Launch: valid saved game (players AND rounds) opens directly on scoring.
   useEffect(() => {
     initSounds(); // fire-and-forget: play functions no-op until ready
+    loadInterstitial(); // fire-and-forget: preload so an ad is ready before it's needed
     (async () => {
       const saved = await restoreState();
       if (saved) setGame(saved);
@@ -83,12 +86,14 @@ export default function App() {
     soundSettle();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     logGameEnd(game); // fire-and-forget, same trigger as web
+    showInterstitial(); // fire-and-forget: no-ops silently if not preloaded yet
   }, [game]);
 
   const newGame = useCallback(() => {
     clearState();
     setGame({ ...FRESH, gameStartTime: Date.now() });
     setScreen('setup');
+    showInterstitial(); // fire-and-forget: no-ops silently if not preloaded yet
   }, []);
 
   const hasActiveGame = game.rounds.length > 0 && game.players.length > 0;
@@ -145,6 +150,7 @@ export default function App() {
             )}
           </ScrollView>
         </KeyboardAvoidingView>
+        {screen === 'scoring' && <AppBannerAd />}
         <Snackbar ref={snackbar} />
       </SafeAreaView>
     </SafeAreaProvider>
