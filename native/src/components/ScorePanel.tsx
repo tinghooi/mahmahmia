@@ -2,16 +2,18 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { fmt, getNetScores, getTitle, sortByScore } from '../logic/game';
 import { Round } from '../types';
-import { colors, panelStyle } from '../theme';
+import { Theme, panelStyle } from '../theme';
+import { fontFamily } from '../fonts';
 
 interface Props {
+  theme: Theme;
   players: string[];
   rounds: Round[];
   showTitles: boolean;
   flashKey?: number;
 }
 
-export function ScorePanel({ players, rounds, showTitles, flashKey }: Props) {
+export function ScorePanel({ theme: t, players, rounds, showTitles, flashKey }: Props) {
   const flash = useRef(new Animated.Value(0)).current;
   const mounted = useRef(false);
 
@@ -31,27 +33,27 @@ export function ScorePanel({ players, rounds, showTitles, flashKey }: Props) {
 
   const borderColor = flash.interpolate({
     inputRange: [0, 1],
-    outputRange: ['rgba(196,135,59,0)', 'rgba(196,135,59,1)'],
+    outputRange: [t.gold + '00', t.gold],
   });
 
-  const scoreColor = (s: number) => (s > 0 ? colors.green : s < 0 ? colors.red : colors.muted);
+  const scoreColor = (s: number) => (s > 0 ? t.green : s < 0 ? t.red : t.ink);
 
   return (
-    <Animated.View style={[panelStyle, styles.panel, { borderColor }]}>
+    <Animated.View style={[panelStyle(t), styles.panel, { borderTopColor: t.gold, borderColor }]}>
       {sorted.map((p, i) => {
         const s = scores[p];
-        const t = getTitle(s, p === top, p === bottom);
+        const title = getTitle(s, p === top, p === bottom);
         return (
-          <View key={p} style={[styles.row, i < sorted.length - 1 && styles.rowBorder]}>
+          <View key={p} style={[styles.row, i < sorted.length - 1 && { borderBottomWidth: 1, borderBottomColor: t.line }]}>
             <View style={styles.rowTop}>
-              <Text style={[styles.name, { color: scoreColor(s) }]}>{p}</Text>
-              <Text style={[styles.score, { color: scoreColor(s) }]}>
+              <Text style={[styles.name, { color: scoreColor(s), fontFamily: fontFamily.displayExtraBold }]}>{p}</Text>
+              <Text style={[styles.score, { color: scoreColor(s), fontFamily: fontFamily.displayExtraBold }]}>
                 {s > 0 ? '+' : ''}{fmt(s)}
               </Text>
             </View>
             {showTitles && rounds.length > 0 && (
               <Text style={[styles.title, { color: scoreColor(s) }]}>
-                {t.emoji} {t.text}
+                {title.emoji} {title.text}
               </Text>
             )}
           </View>
@@ -62,11 +64,10 @@ export function ScorePanel({ players, rounds, showTitles, flashKey }: Props) {
 }
 
 const styles = StyleSheet.create({
-  panel: { borderTopWidth: 3, borderTopColor: colors.gold, borderWidth: 2, borderColor: 'transparent' },
-  row: { paddingVertical: 8 },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.rowDivider },
+  panel: { borderTopWidth: 3, borderWidth: 2 },
+  row: { paddingVertical: 10 },
   rowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  name: { fontWeight: '600', fontSize: 16 },
-  score: { fontWeight: '700', fontSize: 18 },
-  title: { fontSize: 12, marginTop: 2, opacity: 0.65 },
+  name: { fontSize: 20 },
+  score: { fontSize: 22 },
+  title: { fontSize: 12.5, marginTop: 3, opacity: 0.9, fontWeight: '600' },
 });
