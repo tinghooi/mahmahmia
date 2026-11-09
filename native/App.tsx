@@ -13,7 +13,7 @@ import { ScoringScreen } from './src/screens/ScoringScreen';
 import { SettlementScreen } from './src/screens/SettlementScreen';
 import { Header } from './src/components/Header';
 import { Snackbar, SnackbarHandle } from './src/components/Snackbar';
-import { funToast, fmt } from './src/logic/game';
+import { funToast, fmt, insertRoundAt } from './src/logic/game';
 import { saveState, restoreState, clearState, savePrefs, restorePrefs } from './src/storage';
 import { logGameEnd, resetFeatures } from './src/analytics';
 import { initSounds, soundCoin, soundDelete, soundSettle, setSoundEnabled } from './src/sounds';
@@ -106,9 +106,22 @@ export default function App() {
 
   const deleteRound = useCallback((index: number) => {
     setGame(prev => {
-      const rounds = prev.rounds.filter((_, i) => i !== index);
-      const next = { ...prev, rounds };
+      const removed = prev.rounds[index];
+      if (!removed) return prev;
+      const next = { ...prev, rounds: prev.rounds.filter((_, i) => i !== index) };
       saveState(next);
+      const restore = () => {
+        setGame(cur => {
+          const restored = { ...cur, rounds: insertRoundAt(cur.rounds, index, removed) };
+          saveState(restored);
+          return restored;
+        });
+      };
+      snackbar.current?.show(
+        '已删除 Deleted',
+        `#${index + 1}: ${removed.loser} → ${removed.winner}: ${fmt(removed.points)} pts`,
+        { label: 'Undo · 撤销', onPress: restore },
+      );
       return next;
     });
     soundDelete();

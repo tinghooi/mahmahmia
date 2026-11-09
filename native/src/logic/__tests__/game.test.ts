@@ -1,7 +1,7 @@
 import {
   evalExpr, fmt, getNetScores, getTitle, sortByScore,
   calculateSettlement, getRecentAmounts, buildShareText,
-  funToast, settlementFlavor,
+  funToast, settlementFlavor, insertRoundAt,
 } from '../game';
 import { Round } from '../../types';
 
@@ -160,5 +160,19 @@ describe('decimal rounding', () => {
       }
     }
     expect(getTitle(0, false, false).text).toBe('打酱油');
+  });
+});
+
+describe('insertRoundAt', () => {
+  const a = R('A', 'B', 1), b = R('B', 'C', 2), c = R('C', 'A', 3);
+  it('re-inserts at the same index', () => {
+    expect(insertRoundAt([a, c], 1, b)).toEqual([a, b, c]);
+    expect(insertRoundAt([b, c], 0, a)).toEqual([a, b, c]);
+  });
+  it('clamps index to the array bounds and does not mutate', () => {
+    const src = [a];
+    expect(insertRoundAt(src, 99, b)).toEqual([a, b]);
+    expect(insertRoundAt(src, -5, b)).toEqual([b, a]);
+    expect(src).toEqual([a]);
   });
 });

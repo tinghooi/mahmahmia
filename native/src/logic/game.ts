@@ -34,6 +34,11 @@ export function getNetScores(players: string[], rounds: Round[]): Record<string,
   return scores;
 }
 
+export function insertRoundAt(rounds: Round[], index: number, round: Round): Round[] {
+  const i = Math.max(0, Math.min(index, rounds.length));
+  return [...rounds.slice(0, i), round, ...rounds.slice(i)];
+}
+
 export function getTitle(score: number, isTop: boolean, isBottom: boolean): { text: string; emoji: string } {
   if (score === 0) return { text: '打酱油', emoji: '😐' };
   if (isTop && score > 0) return { text: '大老板', emoji: '👑' };
