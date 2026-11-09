@@ -27,6 +27,10 @@ export function getNetScores(players: string[], rounds: Round[]): Record<string,
     scores[r.loser] -= r.points;
     scores[r.winner] += r.points;
   });
+  // Points are 0.1 steps; round away float drift (and normalise -0 to 0)
+  for (const k of Object.keys(scores)) {
+    scores[k] = Math.round(scores[k] * 10) / 10 + 0;
+  }
   return scores;
 }
 
@@ -56,12 +60,12 @@ export function calculateSettlement(netScores: Record<string, number>): { from: 
   const transfers: { from: string; to: string; amount: number }[] = [];
   let d = 0, c = 0;
   while (d < debtors.length && c < creditors.length) {
-    const transfer = Math.min(debtors[d].amount, creditors[c].amount);
-    transfers.push({ from: debtors[d].name, to: creditors[c].name, amount: transfer });
+    const transfer = Math.round(Math.min(debtors[d].amount, creditors[c].amount) * 10) / 10;
+    if (transfer > 0) transfers.push({ from: debtors[d].name, to: creditors[c].name, amount: transfer });
     debtors[d].amount -= transfer;
     creditors[c].amount -= transfer;
-    if (debtors[d].amount === 0) d++;
-    if (creditors[c].amount === 0) c++;
+    if (Math.abs(debtors[d].amount) < 0.001) d++;
+    if (Math.abs(creditors[c].amount) < 0.001) c++;
   }
   return transfers;
 }
