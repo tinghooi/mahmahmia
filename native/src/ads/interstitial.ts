@@ -5,7 +5,10 @@ const interstitial = InterstitialAd.createForAdRequest(INTERSTITIAL_UNIT_ID, {
   requestNonPersonalizedAdsOnly: true,
 });
 
+export const INTERSTITIAL_COOLDOWN_MS = 3 * 60 * 1000;
+
 let loaded = false;
+let lastShownAt: number | null = null;
 
 interstitial.addAdEventListener(AdEventType.LOADED, () => {
   loaded = true;
@@ -20,5 +23,9 @@ export function loadInterstitial() {
 }
 
 export function showInterstitial() {
-  if (loaded) interstitial.show();
+  if (!loaded) return;
+  const now = Date.now();
+  if (lastShownAt !== null && now - lastShownAt < INTERSTITIAL_COOLDOWN_MS) return;
+  lastShownAt = now;
+  interstitial.show();
 }
